@@ -1,19 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, cors: any, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 
 const isAdmin = async (supabase: SupabaseClient): Promise<boolean> => {
@@ -36,21 +32,24 @@ const isAdmin = async (supabase: SupabaseClient): Promise<boolean> => {
 };
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const cors = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   if (req.method !== 'POST' && req.method !== 'GET') {
-    return json({ error: 'Method not allowed.' }, 405);
+    return json({ error: 'Method not allowed.' }, cors, 405);
   }
 
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    return json({ error: 'Missing Supabase environment variables.' }, 500);
+    return json({ error: 'Missing Supabase environment variables.' }, cors, 500);
   }
 
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    return json({ error: 'Missing Authorization header.' }, 401);
+    return json({ error: 'Missing Authorization header.' }, cors, 401);
   }
 
   const userSupabase = createClient(supabaseUrl, anonKey, {
@@ -59,7 +58,7 @@ serve(async (req) => {
 
   const canListUsers = await isAdmin(userSupabase);
   if (!canListUsers) {
-    return json({ error: 'Not authorized.' }, 403);
+    return json({ error: 'Not authorized.' }, cors, 403);
   }
 
   const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
@@ -107,8 +106,8 @@ serve(async (req) => {
       };
     });
 
-    return json({ users: usersWithRole }, 200);
+    return json({ users: usersWithRole }, cors, 200);
   } catch (error: any) {
-    return json({ error: error?.message || 'Unexpected error.' }, 500);
+    return json({ error: error?.message || 'Unexpected error.' }, cors, 500);
   }
 });

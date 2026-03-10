@@ -1,30 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, cors: any, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const cors = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed.' }, 405);
+    return json({ error: 'Method not allowed.' }, cors, 405);
   }
 
   try {
     const { query } = await req.json();
     if (!query || typeof query !== 'string') {
-      return json({ error: 'Missing query.' }, 400);
+      return json({ error: 'Missing query.' }, cors, 400);
     }
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
@@ -38,7 +37,7 @@ serve(async (req) => {
       if (query.toLowerCase().includes('lottt')) fakeReply = "La Ley Orgánica del Trabajo (LOTTT) regula las relaciones laborales en Venezuela. ¿Tienes una duda específica sobre prestaciones o vacaciones?";
       if (query.toLowerCase().includes('nómina') || query.toLowerCase().includes('nomina')) fakeReply = "Puedo ayudarte a calcular la nómina. Recuerda verificar la tasa del BCV antes de procesar.";
 
-      return json({ reply: fakeReply }, 200);
+      return json({ reply: fakeReply }, cors, 200);
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -68,8 +67,8 @@ serve(async (req) => {
     const response = await result.response;
     const text = response.text();
 
-    return json({ reply: text }, 200);
+    return json({ reply: text }, cors, 200);
   } catch (error: any) {
-    return json({ error: error?.message || 'Unexpected error.' }, 500);
+    return json({ error: error?.message || 'Unexpected error.' }, cors, 500);
   }
 });
