@@ -18,6 +18,7 @@ import { fetchBcvRate } from './services/payrollService';
 const App: React.FC = () => {
   const [session, setSession] = useState<any>({user: {id: "1"}});
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [visitedTabs, setVisitedTabs] = useState<string[]>(["dashboard"]);
   const [config, setConfig] = useState<ConfigGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -36,6 +37,11 @@ const App: React.FC = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+
+  useEffect(() => {
+    setVisitedTabs(prev => prev.includes(activeTab) ? prev : [...prev, activeTab]);
+  }, [activeTab]);
 
   const syncBcvRate = async (currentConfig: ConfigGlobal) => {
     // Solo sincronizar si han pasado más de 12 horas desde la última actualización
@@ -139,34 +145,56 @@ const App: React.FC = () => {
     return <Auth />;
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <DashboardOverview 
-            config={config} 
-            totalEmployees={totalEmployees} 
-            estimatedPayrollVEF={estimatedPayrollVEF}
-            setActiveTab={setActiveTab}
-          />
-        );
-      case 'sucursales':
-        return <BranchManager />;
-      case 'empleados':
-        return <EmployeeTable config={config} />;
-      case 'nomina':
-        return <PayrollProcessor config={config} />;
-      case 'prestaciones':
-        return <SocialBenefitsManager config={config} />;
-      case 'asistencia':
-        return <AttendanceManager />;
-      case 'config':
-        return <Configuration config={config} onUpdate={() => {}} />;
-      case 'usuarios':
-        return <UserManager />;
-      default:
-        return <div>Seleccione una opción</div>;
-    }
+    const renderContent = () => {
+    return (
+      <div className="relative w-full h-full">
+        {visitedTabs.includes('dashboard') && (
+          <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+            <DashboardOverview
+              config={config}
+              totalEmployees={totalEmployees}
+              estimatedPayrollVEF={estimatedPayrollVEF}
+              setActiveTab={setActiveTab}
+            />
+          </div>
+        )}
+        {visitedTabs.includes('sucursales') && (
+          <div className={activeTab === 'sucursales' ? 'block' : 'hidden'}>
+            <BranchManager />
+          </div>
+        )}
+        {visitedTabs.includes('empleados') && (
+          <div className={activeTab === 'empleados' ? 'block' : 'hidden'}>
+            <EmployeeTable config={config} />
+          </div>
+        )}
+        {visitedTabs.includes('nomina') && (
+          <div className={activeTab === 'nomina' ? 'block' : 'hidden'}>
+            <PayrollProcessor config={config} />
+          </div>
+        )}
+        {visitedTabs.includes('prestaciones') && (
+          <div className={activeTab === 'prestaciones' ? 'block' : 'hidden'}>
+            <SocialBenefitsManager config={config} />
+          </div>
+        )}
+        {visitedTabs.includes('asistencia') && (
+          <div className={activeTab === 'asistencia' ? 'block' : 'hidden'}>
+            <AttendanceManager />
+          </div>
+        )}
+        {visitedTabs.includes('config') && (
+          <div className={activeTab === 'config' ? 'block' : 'hidden'}>
+            <Configuration config={config} onUpdate={() => {}} />
+          </div>
+        )}
+        {visitedTabs.includes('usuarios') && (
+          <div className={activeTab === 'usuarios' ? 'block' : 'hidden'}>
+            <UserManager />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
