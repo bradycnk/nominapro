@@ -115,6 +115,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
   const [montoIndicador, setMontoIndicador] = useState<Record<string, number>>({});
   const [porcentajeRepartir, setPorcentajeRepartir] = useState<Record<string, number>>({});
   const [globalBonoBs, setGlobalBonoBs] = useState<number | ''>(0);
+  const [globalBonoUsd, setGlobalBonoUsd] = useState<number | ''>(0);
   const [globalBonoPerc, setGlobalBonoPerc] = useState<number | ''>(100);
   const [extraAssigns, setExtraAssigns] = useState<Record<string, number>>({});
   const [extraDeductions, setExtraDeductions] = useState<Record<string, number>>({});
@@ -1515,6 +1516,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                      onChange={(e) => {
                        const val = e.target.value === '' ? '' : Number(e.target.value);
                        setGlobalBonoBs(val);
+                       setGlobalBonoUsd(val === '' ? '' : val / tasa);
                        const valNum = Number(val) || 0;
                        const newMonto = { ...montoIndicador };
                        filteredEmps.forEach(emp => {
@@ -1540,6 +1542,27 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                        setPorcentajeRepartir(newPerc);
                      }}
                      placeholder="100"
+                   />
+                 </div>
+                 <div className="flex items-center gap-2 mt-2">
+                   <span className="text-sm font-bold text-indigo-700 w-[18px] text-center">$</span>
+                   <input
+                     type="number"
+                     className="w-40 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                     value={globalBonoUsd === '' ? '' : Number(globalBonoUsd).toFixed(2)}
+                     onChange={(e) => {
+                       const val = e.target.value === '' ? '' : Number(e.target.value);
+                       setGlobalBonoUsd(val);
+                       const valBs = val === '' ? '' : val * tasa;
+                       setGlobalBonoBs(valBs);
+                       const valNumBs = Number(valBs) || 0;
+                       const newMonto = { ...montoIndicador };
+                       filteredEmps.forEach(emp => {
+                         newMonto[emp.id] = valNumBs;
+                       });
+                       setMontoIndicador(newMonto);
+                     }}
+                     placeholder="0.00"
                    />
                  </div>
                  <div className="text-[10px] font-bold text-indigo-500/80 mt-3 pt-2 border-t border-indigo-200/50 flex justify-between items-center">
