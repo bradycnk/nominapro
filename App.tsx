@@ -16,7 +16,7 @@ import { ConfigGlobal } from './types.ts';
 import { fetchBcvRate } from './services/payrollService';
 
 const App: React.FC = () => {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<any>({user: {id: "1"}});
   const [activeTab, setActiveTab] = useState('dashboard');
   const [config, setConfig] = useState<ConfigGlobal | null>(null);
   const [loading, setLoading] = useState(true);

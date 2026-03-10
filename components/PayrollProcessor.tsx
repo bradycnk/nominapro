@@ -5,6 +5,18 @@ import { calculatePayroll, fetchBcvRate, processAttendanceRecords } from '../ser
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
+
+const getBase64ImageFromUrl = async (url: string): Promise<string> => {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 const LOGO_URL = "https://cfncthqiqabezmemosrz.supabase.co/storage/v1/object/public/expedientes/logos/logo_1770579845203.jpeg";
 
 const defaultReceiptConfig: ReceiptPrintConfig = {
@@ -102,6 +114,8 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
   const [activeTab, setActiveTab] = useState<'lottt' | 'prorrateo'>('lottt');
   const [montoIndicador, setMontoIndicador] = useState<Record<string, number>>({});
   const [porcentajeRepartir, setPorcentajeRepartir] = useState<Record<string, number>>({});
+  const [globalBonoBs, setGlobalBonoBs] = useState<number | ''>(0);
+  const [globalBonoPerc, setGlobalBonoPerc] = useState<number | ''>(100);
   const [extraAssigns, setExtraAssigns] = useState<Record<string, number>>({});
   const [extraDeductions, setExtraDeductions] = useState<Record<string, number>>({});
 
@@ -1492,8 +1506,49 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 shadow-inner">
                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total Bono Proyectado a Pagar (Sucursal)</div>
-                 <div className="flex items-center gap-2 mt-2"><span className="text-sm font-bold text-indigo-700">Bs.</span><input type="number" className="w-40 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={globalPoteRepartidoBs} readOnly /><span className="text-sm font-bold text-indigo-700">%</span><input type="number" className="w-20 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="100" /></div>
-                 <div className="text-sm font-bold text-indigo-500/80 mt-1">≈ ${(globalPoteRepartidoBs / tasa).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})} USD</div>
+                 <div className="flex items-center gap-2 mt-2">
+                   <span className="text-sm font-bold text-indigo-700">Bs.</span>
+                   <input
+                     type="number"
+                     className="w-40 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                     value={globalBonoBs}
+                     onChange={(e) => {
+                       const val = e.target.value === '' ? '' : Number(e.target.value);
+                       setGlobalBonoBs(val);
+                       const valNum = Number(val) || 0;
+                       const newMonto = { ...montoIndicador };
+                       filteredEmps.forEach(emp => {
+                         newMonto[emp.id] = valNum;
+                       });
+                       setMontoIndicador(newMonto);
+                     }}
+                     placeholder="0"
+                   />
+                   <span className="text-sm font-bold text-indigo-700">%</span>
+                   <input
+                     type="number"
+                     className="w-20 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                     value={globalBonoPerc}
+                     onChange={(e) => {
+                       const val = e.target.value === '' ? '' : Number(e.target.value);
+                       setGlobalBonoPerc(val);
+                       const valNum = Number(val) || 0;
+                       const newPerc = { ...porcentajeRepartir };
+                       filteredEmps.forEach(emp => {
+                         newPerc[emp.id] = valNum;
+                       });
+                       setPorcentajeRepartir(newPerc);
+                     }}
+                     placeholder="100"
+                   />
+                 </div>
+                 <div className="text-[10px] font-bold text-indigo-500/80 mt-3 pt-2 border-t border-indigo-200/50 flex justify-between items-center">
+                   <span>TOTAL A REPARTIR CALCULADO:</span>
+                   <span className="text-sm text-indigo-700">
+                     Bs. {globalPoteRepartidoBs.toLocaleString('es-VE', {minimumFractionDigits:2})}
+                     <span className="font-medium opacity-80 text-xs ml-1">(≈ ${(globalPoteRepartidoBs / tasa).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})} USD)</span>
+                   </span>
+                 </div>
                </div>
                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 shadow-inner">
                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fórmula de Cálculo</div>
