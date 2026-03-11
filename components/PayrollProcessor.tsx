@@ -492,7 +492,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     if (!config || !breakdownInput) return;
 
     const isGlobal = !!doc;
-    const pdf = doc || new jsPDF();
+    const pdf = doc || new jsPDF({ format: 'legal' });
 
     const {
       calc,
@@ -612,12 +612,12 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     drawReceipt(0);
     // Línea de corte
     pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(5, 139, pageWidth - 5, 139);
+    pdf.line(5, 177, pageWidth - 5, 177);
     pdf.setLineDashPattern([], 0);
     pdf.setFontSize(6);
-    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 139, { align: "center" });
+    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 177, { align: "center" });
 
-    drawReceipt(140);
+    drawReceipt(178);
 
     if (!isGlobal) {
         window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
@@ -626,7 +626,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
   const generateReceipt2PDF = async (data: any, doc?: jsPDF) => {
     const isGlobal = !!doc;
-    const pdf = doc || new jsPDF();
+    const pdf = doc || new jsPDF({ format: 'legal' });
     const { emp, totalHrs, maxPote, bonoBs, bonoUsd, customAssignUsd, customDeductUsd, totalNetoUsd, totalNetoBs, horasBaseQuincena, tasa, extraAssignName } = data;
 
     const startDay = periodo === 'Q1' ? 1 : 16;
@@ -725,12 +725,12 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     drawReceipt2(0);
     // Línea de corte
     pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(5, 139, pageWidth - 5, 139);
+    pdf.line(5, 177, pageWidth - 5, 177);
     pdf.setLineDashPattern([], 0);
     pdf.setFontSize(6);
-    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 139, { align: "center" });
+    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 177, { align: "center" });
 
-    drawReceipt2(140);
+    drawReceipt2(178);
 
     if (!isGlobal) {
         window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
@@ -739,7 +739,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
   const generateGlobalReceipt2PDF = async (empDataList: any[]) => {
     if (!config || empDataList.length === 0) return;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ format: 'legal' });
     let isFirstPage = true;
 
     for (const data of empDataList) {
@@ -787,7 +787,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
   const generateGlobalPDF = async () => {
     if (!config) return;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ format: 'legal' });
     let isFirstPage = true;
     const adelantosAplicadosGlobal: Array<{ id: string; tipo: 'adelanto_nomina' | 'prestamo_credito'; deducted: number; newSaldo: number }> = [];
 
