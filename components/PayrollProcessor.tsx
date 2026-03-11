@@ -121,6 +121,10 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
   const [extraAssigns, setExtraAssigns] = useState<Record<string, number>>({});
   const [extraDeductions, setExtraDeductions] = useState<Record<string, number>>({});
   const [extraAssignsData, setExtraAssignsData] = useState<Record<string, { nombre: string; montoUsd: number }>>({});
+  const [selectedExtraAssignEmpId, setSelectedExtraAssignEmpId] = useState<string | null>(null);
+  const [showExtraAssignModal, setShowExtraAssignModal] = useState(false);
+  const [selectedExtraDeductEmpId, setSelectedExtraDeductEmpId] = useState<string | null>(null);
+  const [showExtraDeductModal, setShowExtraDeductModal] = useState(false);
   const [excludedEmployees, setExcludedEmployees] = useState<Record<string, boolean>>({});
 
   const [periodo, setPeriodo] = useState<'Q1' | 'Q2'>('Q1');
@@ -1071,6 +1075,127 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
       {renderDetailModal()}
       
       {/* Modal Adelantos */}
+
+      {/* Modal para Agregar Asignación Extra */}
+      {showExtraAssignModal && selectedExtraAssignEmpId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
+            <div className="bg-emerald-600 p-6 flex justify-between items-center relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+               <h3 className="text-white font-black text-lg relative z-10 flex items-center gap-2">
+                 <span>✨</span> Asignación Extra
+               </h3>
+               <button
+                 onClick={() => { setShowExtraAssignModal(false); setSelectedExtraAssignEmpId(null); }}
+                 className="text-emerald-100 hover:text-white transition-colors relative z-10"
+               >
+                 ✕
+               </button>
+            </div>
+            <div className="p-6 space-y-4">
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre Asignación</label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-slate-200 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    placeholder="Ej. Bono Especial"
+                    value={extraAssignsData[selectedExtraAssignEmpId]?.nombre || ''}
+                    onChange={(e) => {
+                       setExtraAssignsData(prev => ({
+                           ...prev,
+                           [selectedExtraAssignEmpId]: {
+                               ...prev[selectedExtraAssignEmpId],
+                               nombre: e.target.value,
+                               montoUsd: extraAssigns[selectedExtraAssignEmpId] || 0
+                           }
+                       }))
+                    }}
+                  />
+               </div>
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Monto ($ USD)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">$</span>
+                    <input
+                      type="number"
+                      className="w-full pl-8 p-3 border border-slate-200 rounded-xl font-black text-xl text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      placeholder="0.00"
+                      value={extraAssigns[selectedExtraAssignEmpId] || ''}
+                      onChange={(e) => {
+                         const val = Number(e.target.value);
+                         setExtraAssigns(prev => ({...prev, [selectedExtraAssignEmpId]: val}));
+                         setExtraAssignsData(prev => ({
+                           ...prev,
+                           [selectedExtraAssignEmpId]: {
+                             nombre: prev[selectedExtraAssignEmpId]?.nombre || '',
+                             montoUsd: val
+                           }
+                         }));
+                      }}
+                    />
+                  </div>
+                  <div className="text-right mt-1 text-xs font-black text-slate-400">
+                     ≈ Bs. {((extraAssigns[selectedExtraAssignEmpId] || 0) * (config?.tasa_bcv || 1)).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </div>
+               </div>
+               <button
+                 onClick={() => { setShowExtraAssignModal(false); setSelectedExtraAssignEmpId(null); }}
+                 className="w-full mt-4 bg-emerald-600 text-white font-black py-3 rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/30"
+               >
+                 Guardar Asignación
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Agregar Deducción Extra */}
+      {showExtraDeductModal && selectedExtraDeductEmpId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
+            <div className="bg-rose-600 p-6 flex justify-between items-center relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+               <h3 className="text-white font-black text-lg relative z-10 flex items-center gap-2">
+                 <span>📉</span> Deducción Extra
+               </h3>
+               <button
+                 onClick={() => { setShowExtraDeductModal(false); setSelectedExtraDeductEmpId(null); }}
+                 className="text-rose-100 hover:text-white transition-colors relative z-10"
+               >
+                 ✕
+               </button>
+            </div>
+            <div className="p-6 space-y-4">
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Monto ($ USD)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500 font-bold">$</span>
+                    <input
+                      type="number"
+                      className="w-full pl-8 p-3 border border-slate-200 rounded-xl font-black text-xl text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none transition-all"
+                      placeholder="0.00"
+                      value={extraDeductions[selectedExtraDeductEmpId] || ''}
+                      onChange={(e) => {
+                         const val = Number(e.target.value);
+                         setExtraDeductions(prev => ({...prev, [selectedExtraDeductEmpId]: val}));
+                      }}
+                    />
+                  </div>
+                  <div className="text-right mt-1 text-xs font-black text-slate-400">
+                     ≈ Bs. {((extraDeductions[selectedExtraDeductEmpId] || 0) * (config?.tasa_bcv || 1)).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </div>
+               </div>
+               <button
+                 onClick={() => { setShowExtraDeductModal(false); setSelectedExtraDeductEmpId(null); }}
+                 className="w-full mt-4 bg-rose-600 text-white font-black py-3 rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-500/30"
+               >
+                 Guardar Deducción
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAdelantoModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] animate-in fade-in duration-200">
             <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl">
@@ -1671,14 +1796,24 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                    <span className="text-sm font-bold text-slate-600">Total a Pagar Global:</span>
                    <div className="text-right">
                      <div className="text-lg font-black text-emerald-600">
-                        Bs. {empHoursData.reduce((acc, { emp, bonoBs, customAssignUsd, customDeductUsd, tasa }) => {
+                        Bs. {empHoursData.reduce((acc, { emp, totalHrs }) => {
+                          const baseIndBs = montoIndicador[emp.id] || 0;
+                          const perc = (porcentajeRepartir[emp.id] ?? 100) / 100;
+                          const bonoBs = ((baseIndBs * perc) / 120) * totalHrs;
+                          const customAssignUsd = extraAssigns[emp.id] || 0;
+                          const customDeductUsd = extraDeductions[emp.id] || 0;
                           const isExcluded = excludedEmployees[emp.id] || false;
                           const bBs = isExcluded ? 0 : bonoBs;
                           return acc + ((bBs / tasa) + customAssignUsd - customDeductUsd) * tasa;
                         }, 0).toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2})}
                      </div>
                      <div className="text-xs font-bold text-slate-500 mt-0.5">
-                        ≈ $ {empHoursData.reduce((acc, { emp, bonoUsd, customAssignUsd, customDeductUsd }) => {
+                        ≈ $ {empHoursData.reduce((acc, { emp, totalHrs }) => {
+                          const baseIndBs = montoIndicador[emp.id] || 0;
+                          const perc = (porcentajeRepartir[emp.id] ?? 100) / 100;
+                          const bonoUsd = (((baseIndBs * perc) / 120) * totalHrs) / tasa;
+                          const customAssignUsd = extraAssigns[emp.id] || 0;
+                          const customDeductUsd = extraDeductions[emp.id] || 0;
                           const isExcluded = excludedEmployees[emp.id] || false;
                           const bUsd = isExcluded ? 0 : bonoUsd;
                           return acc + bUsd + customAssignUsd - customDeductUsd;
@@ -1828,45 +1963,41 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                              <div className="text-[10px] font-black text-slate-400 mt-0.5">${bonoUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</div>
                            </td>
                            <td className="px-6 py-4 text-center">
-                             <div className="flex flex-col items-center justify-center gap-1">
-                               <div className="flex items-center gap-1">
-                                 <span className="text-emerald-500 font-bold">+ $</span>
-                                 <input
-                                   type="number"
-                                   className="w-16 p-1.5 border border-slate-200 rounded text-center text-xs font-bold text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none"
-                                   value={customAssignUsd || ''}
-                                   placeholder="0"
-                                   onChange={(e) => {
-                                      const val = Number(e.target.value);
-                                      setExtraAssigns(prev => ({...prev, [emp.id]: val}));
-                                   }}
-                                 />
-                               </div>
-                               <input 
-                                 type="text"
-                                 className="w-full mt-1 p-1 border border-slate-200 rounded text-[9px] font-bold text-slate-500 focus:ring-1 focus:ring-emerald-500 outline-none"
-                                 placeholder="Nombre Asign."
-                                 value={extraAssignsData[emp.id]?.nombre || ''}
-                                 onChange={(e) => {
-                                    setExtraAssignsData(prev => ({
-                                        ...prev,
-                                        [emp.id]: { nombre: e.target.value, montoUsd: extraAssigns[emp.id] || 0 }
-                                    }))
-                                 }}
-                               />
-                             </div>
+                             <button
+                               onClick={() => {
+                                  setSelectedExtraAssignEmpId(emp.id);
+                                  setShowExtraAssignModal(true);
+                               }}
+                               className="flex flex-col items-center justify-center w-full p-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                             >
+                               {customAssignUsd > 0 ? (
+                                 <>
+                                   <div className="text-sm font-black text-emerald-600">+ $ {customAssignUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                   <div className="text-[9px] font-bold text-emerald-700/70 truncate w-full px-1">{extraAssignsData[emp.id]?.nombre || 'Asignación Extra'}</div>
+                                 </>
+                               ) : (
+                                 <div className="text-xs font-bold text-emerald-600/70 flex items-center gap-1">
+                                   <span className="text-lg leading-none">+</span> Agregar
+                                 </div>
+                               )}
+                             </button>
                            </td>
                            <td className="px-6 py-4 text-center">
-                             <div className="flex items-center justify-center gap-1">
-                               <span className="text-rose-500 font-bold">- $</span>
-                               <input 
-                                 type="number" 
-                                 className="w-16 p-1.5 border border-slate-200 rounded text-center text-xs font-bold text-rose-600 focus:ring-1 focus:ring-rose-500 outline-none"
-                                 value={customDeductUsd || ''}
-                                 placeholder="0"
-                                 onChange={(e) => setExtraDeductions(prev => ({...prev, [emp.id]: Number(e.target.value)}))}
-                               />
-                             </div>
+                             <button
+                               onClick={() => {
+                                  setSelectedExtraDeductEmpId(emp.id);
+                                  setShowExtraDeductModal(true);
+                               }}
+                               className="flex flex-col items-center justify-center w-full p-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors"
+                             >
+                               {customDeductUsd > 0 ? (
+                                 <div className="text-sm font-black text-rose-600">- $ {customDeductUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                               ) : (
+                                 <div className="text-xs font-bold text-rose-600/70 flex items-center gap-1">
+                                   <span className="text-lg leading-none">-</span> Agregar
+                                 </div>
+                               )}
+                             </button>
                            </td>
                            <td className="px-6 py-4 text-right bg-slate-50/50">
                              <div className="font-black text-slate-800 text-base">Bs. {totalNetoBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
