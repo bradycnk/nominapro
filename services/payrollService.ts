@@ -1,5 +1,5 @@
 
-import { ConfigGlobal, Empleado, Asistencia } from '../types.ts';
+import type { ConfigGlobal, Empleado, Asistencia } from '../types.ts';
 
 // Constantes Legales LOTTT
 const TOPE_IVSS_SALARIOS_MINIMOS = 5;
