@@ -297,9 +297,10 @@ const AttendanceManager: React.FC = () => {
     const data = attendances[empId];
     if (!data?.hora_salida) return alert("Ingrese la hora de salida");
 
-    if (data.hora_salida <= savedData.hora_entrada) {
+    // Validación removida para permitir turnos nocturnos que cruzan la medianoche
+    /* if (data.hora_salida <= savedData.hora_entrada) {
       return alert("La hora de salida debe ser posterior a la entrada.");
-    }
+    } */
 
     setProcessingId(empId);
     try {
