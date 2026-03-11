@@ -37,6 +37,7 @@ export interface ConfigGlobal {
   dias_utilidades: number;
   dias_bono_vacacional_base: number;
   receipt_print_config?: Partial<ReceiptPrintConfig> | null;
+  prorrateo_config?: any;
   theme?: string;
   accent_color?: string;
   updated_at: string;
