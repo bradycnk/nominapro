@@ -120,6 +120,8 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
   const [globalBonoPerc, setGlobalBonoPerc] = useState<number | ''>(100);
   const [extraAssigns, setExtraAssigns] = useState<Record<string, number>>({});
   const [extraDeductions, setExtraDeductions] = useState<Record<string, number>>({});
+  const [extraAssignsData, setExtraAssignsData] = useState<Record<string, { nombre: string; montoUsd: number }>>({});
+  const [excludedEmployees, setExcludedEmployees] = useState<Record<string, boolean>>({});
 
   const [periodo, setPeriodo] = useState<'Q1' | 'Q2'>('Q1');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -137,6 +139,22 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     }
     setReceiptConfig(normalizeReceiptPrintConfig(config.receipt_print_config));
   }, [config]);
+
+  useEffect(() => {
+    if (config?.prorrateo_config) {
+      const pc = config.prorrateo_config;
+      if (pc.montoIndicador) setMontoIndicador(pc.montoIndicador);
+      if (pc.porcentajeRepartir) setPorcentajeRepartir(pc.porcentajeRepartir);
+      if (pc.extraAssigns) setExtraAssigns(pc.extraAssigns);
+      if (pc.extraAssignsData) setExtraAssignsData(pc.extraAssignsData);
+      if (pc.extraDeductions) setExtraDeductions(pc.extraDeductions);
+      if (pc.excludedEmployees) setExcludedEmployees(pc.excludedEmployees);
+      if (pc.globalBonoBs !== undefined) setGlobalBonoBs(pc.globalBonoBs);
+      if (pc.globalBonoUsd !== undefined) setGlobalBonoUsd(pc.globalBonoUsd);
+      if (pc.globalBonoPerc !== undefined) setGlobalBonoPerc(pc.globalBonoPerc);
+    }
+  }, [config]);
+
 
   const loadData = async () => {
     setLoadingData(true);
@@ -605,7 +623,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
   const generateReceipt2PDF = async (data: any, doc?: jsPDF) => {
     const isGlobal = !!doc;
     const pdf = doc || new jsPDF();
-    const { emp, totalHrs, maxPote, bonoBs, bonoUsd, customAssignUsd, customDeductUsd, totalNetoUsd, totalNetoBs, horasBaseQuincena, tasa } = data;
+    const { emp, totalHrs, maxPote, bonoBs, bonoUsd, customAssignUsd, customDeductUsd, totalNetoUsd, totalNetoBs, horasBaseQuincena, tasa, extraAssignName } = data;
 
     const startDay = periodo === 'Q1' ? 1 : 16;
     const endDay = periodo === 'Q1' ? 15 : new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -666,8 +684,8 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         y += 6;
     };
 
-    addRow("Bono de Reparto (Prorrateo)", `${totalHrs.toFixed(2)} de ${horasBaseQuincena} hrs.`, bonoUsd, bonoBs);
-    if (customAssignUsd > 0) addRow("Asignaciones Adicionales", "Primas Extra", customAssignUsd, customAssignUsd * tasa);
+    if (bonoUsd > 0 || bonoBs > 0) addRow("Bono de Reparto (Prorrateo)", `${totalHrs.toFixed(2)} de ${horasBaseQuincena} hrs.`, bonoUsd, bonoBs);
+    if (customAssignUsd > 0) addRow("Asignaciones Adicionales", extraAssignName || "Primas Extra", customAssignUsd, customAssignUsd * tasa);
     if (customDeductUsd > 0) addRow("Deducciones / Vales", "Retención Manual", -customDeductUsd, -(customDeductUsd * tasa));
 
     y += 5;
@@ -729,6 +747,38 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     }
 
     window.open(URL.createObjectURL(doc.output("blob")), "_blank");
+  };
+
+    const saveProrrateoConfig = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const configData = {
+          montoIndicador,
+          porcentajeRepartir,
+          extraAssigns,
+          extraAssignsData,
+          extraDeductions,
+          excludedEmployees,
+          globalBonoBs,
+          globalBonoUsd,
+          globalBonoPerc
+      };
+
+      const { error } = await supabase
+        .from('configuracion_global')
+        .update({
+            prorrateo_config: configData
+        })
+        .eq('id', config?.id);
+
+      if (error) throw error;
+      alert('Configuración de prorrateo guardada correctamente');
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar configuración');
+    }
   };
 
   const generateGlobalPDF = async () => {
@@ -1610,11 +1660,42 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                    </span>
                  </div>
                </div>
-               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 shadow-inner">
-                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fórmula de Cálculo</div>
-                 <div className="text-lg font-bold text-slate-600">Bono = (Monto * %) / {horasBaseQuincena} hrs × Horas Laboradas</div>
-                 <div className="text-xs font-medium text-slate-400 mt-1">* Se asumen {horasBaseQuincena} horas físicas como el 100% de la quincena.</div>
+
+               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 shadow-inner flex flex-col justify-center">
+                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2">Resumen Global</div>
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="text-sm font-bold text-slate-600">Total Empleados:</span>
+                   <span className="text-lg font-black text-slate-800">{empHoursData.length}</span>
+                 </div>
+                 <div className="flex justify-between items-center">
+                   <span className="text-sm font-bold text-slate-600">Total a Pagar Global:</span>
+                   <div className="text-right">
+                     <div className="text-lg font-black text-emerald-600">
+                        Bs. {empHoursData.reduce((acc, { emp, bonoBs, customAssignUsd, customDeductUsd, tasa }) => {
+                          const isExcluded = excludedEmployees[emp.id] || false;
+                          const bBs = isExcluded ? 0 : bonoBs;
+                          return acc + ((bBs / tasa) + customAssignUsd - customDeductUsd) * tasa;
+                        }, 0).toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2})}
+                     </div>
+                     <div className="text-xs font-bold text-slate-500 mt-0.5">
+                        ≈ $ {empHoursData.reduce((acc, { emp, bonoUsd, customAssignUsd, customDeductUsd }) => {
+                          const isExcluded = excludedEmployees[emp.id] || false;
+                          const bUsd = isExcluded ? 0 : bonoUsd;
+                          return acc + bUsd + customAssignUsd - customDeductUsd;
+                        }, 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})} USD
+                     </div>
+                   </div>
+                 </div>
+                 <div className="mt-4 pt-3 border-t border-slate-200">
+                    <button
+                      onClick={saveProrrateoConfig}
+                      className="w-full bg-emerald-600 text-white py-2 rounded-lg text-xs font-black uppercase hover:bg-emerald-700 transition-colors shadow-sm flex justify-center items-center gap-2"
+                    >
+                      <span>💾</span> Guardar Configuración Global
+                    </button>
+                 </div>
                </div>
+
             </div>
 
             {/* Tabla de Desglose de Prorrateo */}
@@ -1646,6 +1727,14 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                 <table className="w-full text-sm text-left">
                   <thead className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
                     <tr>
+                      <th className="px-4 py-4 w-10 text-center"><input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" onChange={(e) => {
+    const isChecked = e.target.checked;
+    const newExcluded = {...excludedEmployees};
+    empHoursData.forEach(({emp}) => {
+        newExcluded[emp.id] = isChecked;
+    });
+    setExcludedEmployees(newExcluded);
+}} checked={empHoursData.length > 0 && empHoursData.every(({emp}) => excludedEmployees[emp.id])} /></th>
                       <th className="px-6 py-4">Empleado</th>
                       <th className="px-6 py-4 text-center">Configuración Pote</th>
                       <th className="px-6 py-4 text-center">Horas Laboradas</th>
@@ -1675,12 +1764,27 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                        const totalNetoUsd = bonoUsd + customAssignUsd - customDeductUsd;
                        const totalNetoBs = totalNetoUsd * tasa;
 
+                       const isExcluded = excludedEmployees[emp.id] || false;
+                       const finalBonoBs = isExcluded ? 0 : bonoBs;
+                       const finalBonoUsd = isExcluded ? 0 : bonoUsd;
+                       const finalTotalNetoUsd = finalBonoUsd + customAssignUsd - customDeductUsd;
+                       const finalTotalNetoBs = finalTotalNetoUsd * tasa;
+
                        const individualProrrateoData = {
-                          emp, totalHrs, maxPote, bonoBs, bonoUsd, customAssignUsd, customDeductUsd, totalNetoUsd, totalNetoBs, horasBaseQuincena, tasa
+                          emp, totalHrs, maxPote, bonoBs: finalBonoBs, bonoUsd: finalBonoUsd, customAssignUsd, customDeductUsd, totalNetoUsd: finalTotalNetoUsd, totalNetoBs: finalTotalNetoBs, horasBaseQuincena, tasa,
+                          extraAssignName: extraAssignsData[emp.id]?.nombre || 'Primas Extra'
                        };
 
                        return (
-                         <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
+                         <tr key={emp.id} className={`hover:bg-slate-50/50 transition-colors ${isExcluded ? 'opacity-50 grayscale' : ''}`}>
+                           <td className="px-4 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                                checked={isExcluded}
+                                onChange={(e) => setExcludedEmployees(prev => ({...prev, [emp.id]: e.target.checked}))}
+                              />
+                           </td>
                            <td className="px-6 py-4">
                              <div className="font-bold text-slate-700">{emp.nombre} {emp.apellido}</div>
                              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{emp.cargo}</div>
@@ -1724,14 +1828,31 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                              <div className="text-[10px] font-black text-slate-400 mt-0.5">${bonoUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</div>
                            </td>
                            <td className="px-6 py-4 text-center">
-                             <div className="flex items-center justify-center gap-1">
-                               <span className="text-emerald-500 font-bold">+ $</span>
+                             <div className="flex flex-col items-center justify-center gap-1">
+                               <div className="flex items-center gap-1">
+                                 <span className="text-emerald-500 font-bold">+ $</span>
+                                 <input
+                                   type="number"
+                                   className="w-16 p-1.5 border border-slate-200 rounded text-center text-xs font-bold text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none"
+                                   value={customAssignUsd || ''}
+                                   placeholder="0"
+                                   onChange={(e) => {
+                                      const val = Number(e.target.value);
+                                      setExtraAssigns(prev => ({...prev, [emp.id]: val}));
+                                   }}
+                                 />
+                               </div>
                                <input 
-                                 type="number" 
-                                 className="w-16 p-1.5 border border-slate-200 rounded text-center text-xs font-bold text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none"
-                                 value={customAssignUsd || ''}
-                                 placeholder="0"
-                                 onChange={(e) => setExtraAssigns(prev => ({...prev, [emp.id]: Number(e.target.value)}))}
+                                 type="text"
+                                 className="w-full mt-1 p-1 border border-slate-200 rounded text-[9px] font-bold text-slate-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                                 placeholder="Nombre Asign."
+                                 value={extraAssignsData[emp.id]?.nombre || ''}
+                                 onChange={(e) => {
+                                    setExtraAssignsData(prev => ({
+                                        ...prev,
+                                        [emp.id]: { nombre: e.target.value, montoUsd: extraAssigns[emp.id] || 0 }
+                                    }))
+                                 }}
                                />
                              </div>
                            </td>
