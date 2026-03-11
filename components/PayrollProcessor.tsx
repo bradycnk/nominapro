@@ -89,6 +89,7 @@ const normalizeReceiptPrintConfig = (rawConfig: unknown): ReceiptPrintConfig => 
 const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config }) => {
   const [employees, setEmployees] = useState<Empleado[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [principalBranch, setPrincipalBranch] = useState<any>(null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const [attendances, setAttendances] = useState<Asistencia[]>([]);
   const [adelantos, setAdelantos] = useState<Adelanto[]>([]);
@@ -144,8 +145,11 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     const startDate = new Date(selectedYear, selectedMonth, startDay).toISOString().split('T')[0];
     const endDate = new Date(selectedYear, selectedMonth, endDay).toISOString().split('T')[0];
 
-    const { data: brData } = await supabase.from('sucursales').select('id, nombre_id').order('nombre_id');
+    const { data: brData } = await supabase.from('sucursales').select('*').order('nombre_id');
     const { data: empData } = await supabase.from('empleados').select('*, sucursales(*)').eq('activo', true);
+
+    const principal = brData?.find((b: any) => b.es_principal) || null;
+    setPrincipalBranch(principal);
     const { data: attData } = await supabase.from('asistencias').select('*').gte('fecha', startDate).lte('fecha', endDate);
     const { data: nomData } = await supabase.from('nominas_mensuales')
         .select('*')
@@ -500,8 +504,8 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
     let y = 50;
     pdf.setFontSize(9);
-    pdf.text(`EMPRESA: ${emp.sucursales?.nombre_id || 'FarmaNomina C.A.'}`, 15, y);
-    pdf.text(`RIF: ${emp.sucursales?.rif || 'J-12345678-9'}`, pageWidth - 15, y, { align: "right" });
+    pdf.text(`EMPRESA: ${principalBranch?.nombre_id || emp.sucursales?.nombre_id || 'FarmaNomina C.A.'}`, 15, y);
+    pdf.text(`RIF: ${principalBranch?.rif || emp.sucursales?.rif || 'J-12345678-9'}`, pageWidth - 15, y, { align: "right" });
     y += 10;
 
     pdf.setFont("courier", "bold");
@@ -611,14 +615,15 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
     // Datos del Trabajador
     pdf.setFillColor(240, 240, 245);
-    pdf.rect(15, 40, 180, 25, 'F');
+    pdf.rect(15, 40, 180, 28, 'F');
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
-    pdf.text("DATOS DEL BENEFICIARIO", 20, 48);
+    pdf.text("DATOS DEL BENEFICIARIO", 20, 45);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`Nombres y Apellidos: ${emp.nombre} ${emp.apellido}`, 20, 56);
-    pdf.text(`Cédula de Identidad: V-${emp.cedula}`, 120, 56);
-    pdf.text(`Cargo: ${emp.cargo || 'No especificado'}`, 20, 62);
+    pdf.text(`Empresa: ${principalBranch?.nombre_id || emp.sucursales?.nombre_id || 'FarmaNomina C.A.'} - RIF: ${principalBranch?.rif || emp.sucursales?.rif || 'J-12345678-9'}`, 20, 50);
+    pdf.text(`Nombres y Apellidos: ${emp.nombre} ${emp.apellido}`, 20, 58);
+    pdf.text(`Cédula de Identidad: V-${emp.cedula}`, 120, 58);
+    pdf.text(`Cargo: ${emp.cargo || 'No especificado'}`, 20, 64);
     
     // Cabecera de la tabla
     let y = 75;

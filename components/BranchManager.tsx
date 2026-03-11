@@ -107,12 +107,25 @@ const BranchManager: React.FC = () => {
         logo_url: finalLogoUrl
       };
 
+      let newBranchId = editingBranch?.id;
+
       if (editingBranch) {
         const { error } = await supabase.from('sucursales').update(payload).eq('id', editingBranch.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('sucursales').insert([payload]);
+        const { data, error } = await supabase.from('sucursales').insert([payload]).select().single();
         if (error) throw error;
+        newBranchId = data.id;
+      }
+
+      if (formData.es_principal && newBranchId) {
+        const { error: updateError } = await supabase
+          .from('sucursales')
+          .update({ es_principal: false })
+          .neq('id', newBranchId);
+        if (updateError) {
+          console.error("No se pudieron desmarcar las otras sucursales principales:", updateError);
+        }
       }
 
       setShowModal(false);
