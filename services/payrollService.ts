@@ -17,6 +17,7 @@ const NIGHT_END = 5.0;   // 5:00 AM (Día siguiente)
  */
 export const timeToDecimal = (timeStr: string): number => {
   if (!timeStr) return 0;
+  if (timeStr === '23:59') return 24.0;
   const [h, m] = timeStr.split(':').map(Number);
   return h + (m / 60);
 };

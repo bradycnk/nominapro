@@ -213,24 +213,57 @@ const AttendanceManager: React.FC = () => {
       return;
     }
 
+
     setSavingCalendarDay(true);
     try {
-      const payload = {
-        empleado_id: selectedEmployeeId,
-        fecha: selectedDate,
-        estado: dayDraft.estado,
-        hora_entrada: dayDraft.estado === 'presente' ? (dayDraft.hora_entrada || null) : null,
-        hora_salida: dayDraft.estado === 'presente' ? (dayDraft.hora_salida || null) : null,
-        observaciones: dayDraft.observaciones.trim() || null,
-      };
+      const payloads = [];
+      const obs = dayDraft.observaciones.trim();
 
-      const { error } = await supabase
-        .from('asistencias')
-        .upsert(payload, { onConflict: 'empleado_id,fecha' });
+      if (dayDraft.estado === 'presente' && dayDraft.hora_entrada && dayDraft.hora_salida && dayDraft.hora_salida < dayDraft.hora_entrada) {
+        // Turno cruzando medianoche
+        payloads.push({
+          empleado_id: selectedEmployeeId,
+          fecha: selectedDate,
+          estado: 'presente',
+          hora_entrada: dayDraft.hora_entrada,
+          hora_salida: '23:59',
+          observaciones: obs ? `${obs} (Continúa el día siguiente)` : 'Continúa el día siguiente',
+        });
 
-      if (error) throw error;
+        // Calcular fecha siguiente
+        const currentDate = new Date(selectedDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+        const nextDateStr = currentDate.toISOString().split('T')[0];
+
+        payloads.push({
+          empleado_id: selectedEmployeeId,
+          fecha: nextDateStr,
+          estado: 'presente',
+          hora_entrada: '00:00',
+          hora_salida: dayDraft.hora_salida,
+          observaciones: 'Continuación de turno nocturno',
+        });
+      } else {
+        payloads.push({
+          empleado_id: selectedEmployeeId,
+          fecha: selectedDate,
+          estado: dayDraft.estado,
+          hora_entrada: dayDraft.estado === 'presente' ? (dayDraft.hora_entrada || null) : null,
+          hora_salida: dayDraft.estado === 'presente' ? (dayDraft.hora_salida || null) : null,
+          observaciones: obs || null,
+        });
+      }
+
+      for (const payload of payloads) {
+        const { error } = await supabase
+          .from('asistencias')
+          .upsert(payload, { onConflict: 'empleado_id,fecha' });
+
+        if (error) throw error;
+      }
 
       const refreshedHistory = await fetchEmployeeHistory();
+
       if (selectedDate === today) await fetchInitialData();
       const refreshedRecord = refreshedHistory.find((record) => record.fecha === selectedDate);
       setDayDraft({
@@ -446,12 +479,19 @@ const AttendanceManager: React.FC = () => {
           let bgColor = 'bg-white';
           let borderColor = 'border-slate-100';
           
+          const isNightContinuation = record?.observaciones === 'Continuación de turno nocturno';
+
           if (isHoliday) {
             bgColor = 'bg-orange-50';
             borderColor = 'border-orange-200';
           } else if (record?.estado === 'presente') {
-            bgColor = isSunday ? 'bg-amber-50' : 'bg-emerald-50';
-            borderColor = isSunday ? 'border-amber-200' : 'border-emerald-200';
+            if (isNightContinuation) {
+              bgColor = 'bg-slate-100';
+              borderColor = 'border-slate-300';
+            } else {
+              bgColor = isSunday ? 'bg-amber-50' : 'bg-emerald-50';
+              borderColor = isSunday ? 'border-amber-200' : 'border-emerald-200';
+            }
           } else if (record?.estado === 'falta') {
             bgColor = 'bg-rose-50';
             borderColor = 'border-rose-200';
