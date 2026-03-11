@@ -20,27 +20,27 @@ const getBase64ImageFromUrl = async (url: string): Promise<string> => {
 const LOGO_URL = "https://cfncthqiqabezmemosrz.supabase.co/storage/v1/object/public/expedientes/logos/logo_1770579845203.jpeg";
 
 const defaultReceiptConfig: ReceiptPrintConfig = {
-  diasLaborados: { enabled: true, cantidad: 15, montoUnitario: 4.33 }, // 130 / 30
-  diasDescanso: { enabled: true, cantidad: 4, montoUnitario: 4.33 },
-  descansoLaborado: { enabled: false, cantidad: 0, montoUnitario: 6.50 }, // 4.33 * 1.5
-  domingoLaborado: { enabled: false, cantidad: 0, montoUnitario: 6.50 }, // 4.33 * 1.5
-  horasExtrasDiurnas: { enabled: true, cantidad: 0, montoUnitario: 0.81 }, // (4.33 / 8) * 1.5
-  feriadosLaborados: { enabled: false, cantidad: 0, montoUnitario: 6.50 }, // 4.33 * 1.5
-  bonoNocturno: { enabled: true, cantidad: 0, montoUnitario: 0.16 }, // (4.33 / 8) * 0.30
-  turnosLaborados: { enabled: false, cantidad: 0, montoUnitario: 4.33 },
-  bonoJornadaMixta: { enabled: false, cantidad: 0, montoUnitario: 0.16 }, // (4.33 / 8) * 0.30
-  horasExtrasNocturnas: { enabled: true, cantidad: 0, montoUnitario: 1.06 }, // (4.33 / 8) * 1.95
-  diasCompensatorios: { enabled: false, cantidad: 0, montoUnitario: 4.33 },
-  sabadoLaborado: { enabled: false, cantidad: 0, montoUnitario: 4.33 },
-  bonoAlimentacion: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  otrasAsignaciones: { enabled: false, cantidad: 1, montoUnitario: 0 },
-  vales: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  sso: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  rpe: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  faov: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  islr: { enabled: false, cantidad: 1, montoUnitario: 0 },
-  adelantoNomina: { enabled: true, cantidad: 1, montoUnitario: 0 },
-  prestamo: { enabled: true, cantidad: 1, montoUnitario: 0 },
+  diasLaborados: { enabled: true }, // 130 / 30
+  diasDescanso: { enabled: true },
+  descansoLaborado: { enabled: false }, // 4.33 * 1.5
+  domingoLaborado: { enabled: false }, // 4.33 * 1.5
+  horasExtrasDiurnas: { enabled: true }, // (4.33 / 8) * 1.5
+  feriadosLaborados: { enabled: false }, // 4.33 * 1.5
+  bonoNocturno: { enabled: true }, // (4.33 / 8) * 0.30
+  turnosLaborados: { enabled: false },
+  bonoJornadaMixta: { enabled: false }, // (4.33 / 8) * 0.30
+  horasExtrasNocturnas: { enabled: true }, // (4.33 / 8) * 1.95
+  diasCompensatorios: { enabled: false },
+  sabadoLaborado: { enabled: false },
+  bonoAlimentacion: { enabled: true },
+  otrasAsignaciones: { enabled: false },
+  vales: { enabled: true },
+  sso: { enabled: true },
+  rpe: { enabled: true },
+  faov: { enabled: true },
+  islr: { enabled: false },
+  adelantoNomina: { enabled: true },
+  prestamo: { enabled: true },
 };
 
 const toNumber = (value: unknown, fallback: number): number => {
@@ -49,12 +49,16 @@ const toNumber = (value: unknown, fallback: number): number => {
   return fallback;
 };
 
-const normalizeReceiptItem = (raw: any, fallback: any) => {
+const normalizeReceiptItem = (raw: any, fallback: any, key: string) => {
   if (!raw || typeof raw !== 'object') return fallback;
+
+  let cantidad = typeof raw.cantidad === 'number' ? raw.cantidad : fallback.cantidad;
+  let montoUnitario = typeof raw.montoUnitario === 'number' ? raw.montoUnitario : fallback.montoUnitario;
+
   return {
     enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
-    cantidad: typeof raw.cantidad === 'number' ? raw.cantidad : fallback.cantidad,
-    montoUnitario: typeof raw.montoUnitario === 'number' ? raw.montoUnitario : fallback.montoUnitario,
+    cantidad,
+    montoUnitario,
   };
 };
 
@@ -62,27 +66,27 @@ const normalizeReceiptPrintConfig = (rawConfig: unknown): ReceiptPrintConfig => 
   const source = rawConfig && typeof rawConfig === 'object' ? (rawConfig as Partial<ReceiptPrintConfig>) : {};
 
   return {
-    diasLaborados: normalizeReceiptItem(source.diasLaborados, defaultReceiptConfig.diasLaborados),
-    diasDescanso: normalizeReceiptItem(source.diasDescanso, defaultReceiptConfig.diasDescanso),
-    descansoLaborado: normalizeReceiptItem(source.descansoLaborado, defaultReceiptConfig.descansoLaborado),
-    domingoLaborado: normalizeReceiptItem(source.domingoLaborado, defaultReceiptConfig.domingoLaborado),
-    horasExtrasDiurnas: normalizeReceiptItem(source.horasExtrasDiurnas, defaultReceiptConfig.horasExtrasDiurnas),
-    feriadosLaborados: normalizeReceiptItem(source.feriadosLaborados, defaultReceiptConfig.feriadosLaborados),
-    bonoNocturno: normalizeReceiptItem(source.bonoNocturno, defaultReceiptConfig.bonoNocturno),
-    turnosLaborados: normalizeReceiptItem(source.turnosLaborados, defaultReceiptConfig.turnosLaborados),
-    bonoJornadaMixta: normalizeReceiptItem(source.bonoJornadaMixta, defaultReceiptConfig.bonoJornadaMixta),
-    horasExtrasNocturnas: normalizeReceiptItem(source.horasExtrasNocturnas, defaultReceiptConfig.horasExtrasNocturnas),
-    diasCompensatorios: normalizeReceiptItem(source.diasCompensatorios, defaultReceiptConfig.diasCompensatorios),
-    sabadoLaborado: normalizeReceiptItem(source.sabadoLaborado, defaultReceiptConfig.sabadoLaborado),
-    bonoAlimentacion: normalizeReceiptItem(source.bonoAlimentacion, defaultReceiptConfig.bonoAlimentacion),
-    otrasAsignaciones: normalizeReceiptItem(source.otrasAsignaciones, defaultReceiptConfig.otrasAsignaciones),
-    vales: normalizeReceiptItem(source.vales, defaultReceiptConfig.vales),
-    sso: normalizeReceiptItem(source.sso, defaultReceiptConfig.sso),
-    rpe: normalizeReceiptItem(source.rpe, defaultReceiptConfig.rpe),
-    faov: normalizeReceiptItem(source.faov, defaultReceiptConfig.faov),
-    islr: normalizeReceiptItem(source.islr, defaultReceiptConfig.islr),
-    adelantoNomina: normalizeReceiptItem(source.adelantoNomina, defaultReceiptConfig.adelantoNomina),
-    prestamo: normalizeReceiptItem(source.prestamo, defaultReceiptConfig.prestamo),
+    diasLaborados: normalizeReceiptItem(source.diasLaborados, defaultReceiptConfig.diasLaborados, 'diasLaborados'),
+    diasDescanso: normalizeReceiptItem(source.diasDescanso, defaultReceiptConfig.diasDescanso, 'diasDescanso'),
+    descansoLaborado: normalizeReceiptItem(source.descansoLaborado, defaultReceiptConfig.descansoLaborado, 'descansoLaborado'),
+    domingoLaborado: normalizeReceiptItem(source.domingoLaborado, defaultReceiptConfig.domingoLaborado, 'domingoLaborado'),
+    horasExtrasDiurnas: normalizeReceiptItem(source.horasExtrasDiurnas, defaultReceiptConfig.horasExtrasDiurnas, 'horasExtrasDiurnas'),
+    feriadosLaborados: normalizeReceiptItem(source.feriadosLaborados, defaultReceiptConfig.feriadosLaborados, 'feriadosLaborados'),
+    bonoNocturno: normalizeReceiptItem(source.bonoNocturno, defaultReceiptConfig.bonoNocturno, 'bonoNocturno'),
+    turnosLaborados: normalizeReceiptItem(source.turnosLaborados, defaultReceiptConfig.turnosLaborados, 'turnosLaborados'),
+    bonoJornadaMixta: normalizeReceiptItem(source.bonoJornadaMixta, defaultReceiptConfig.bonoJornadaMixta, 'bonoJornadaMixta'),
+    horasExtrasNocturnas: normalizeReceiptItem(source.horasExtrasNocturnas, defaultReceiptConfig.horasExtrasNocturnas, 'horasExtrasNocturnas'),
+    diasCompensatorios: normalizeReceiptItem(source.diasCompensatorios, defaultReceiptConfig.diasCompensatorios, 'diasCompensatorios'),
+    sabadoLaborado: normalizeReceiptItem(source.sabadoLaborado, defaultReceiptConfig.sabadoLaborado, 'sabadoLaborado'),
+    bonoAlimentacion: normalizeReceiptItem(source.bonoAlimentacion, defaultReceiptConfig.bonoAlimentacion, 'bonoAlimentacion'),
+    otrasAsignaciones: normalizeReceiptItem(source.otrasAsignaciones, defaultReceiptConfig.otrasAsignaciones, 'otrasAsignaciones'),
+    vales: normalizeReceiptItem(source.vales, defaultReceiptConfig.vales, 'vales'),
+    sso: normalizeReceiptItem(source.sso, defaultReceiptConfig.sso, 'sso'),
+    rpe: normalizeReceiptItem(source.rpe, defaultReceiptConfig.rpe, 'rpe'),
+    faov: normalizeReceiptItem(source.faov, defaultReceiptConfig.faov, 'faov'),
+    islr: normalizeReceiptItem(source.islr, defaultReceiptConfig.islr, 'islr'),
+    adelantoNomina: normalizeReceiptItem(source.adelantoNomina, defaultReceiptConfig.adelantoNomina, 'adelantoNomina'),
+    prestamo: normalizeReceiptItem(source.prestamo, defaultReceiptConfig.prestamo, 'prestamo'),
   };
 };
 
@@ -1473,13 +1477,13 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
                                type="number" 
                                step="0.01" 
                                className={`w-16 p-1.5 border border-slate-300 rounded-lg text-center outline-none transition-all ${isQtyReadOnly ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-700'}`} 
-                               value={item.cantidad === 0 && !isQtyReadOnly ? '' : (item.cantidad ?? '')} 
-                               placeholder={isQtyReadOnly ? "-" : "0"} 
+                               value={item.cantidad ?? ''}
+                               placeholder={isQtyReadOnly ? "-" : (bMap ? (bMap[key]?.qty ?? '0').toString() : '0')}
                                readOnly={isQtyReadOnly}
                                onChange={e => { 
                                  if (isQtyReadOnly) return;
                                  const val = e.target.value; 
-                                 setReceiptConfig(prev => ({ ...prev, [key]: { ...item, cantidad: val === '' ? 0 : parseFloat(val) } })) 
+                                 setReceiptConfig(prev => ({ ...prev, [key]: { ...item, cantidad: val === '' ? undefined : parseFloat(val) } }))
                                }} 
                              />
                              <span className="text-[10px] text-slate-500 font-bold uppercase w-8 text-left">({configItem.unit})</span>
