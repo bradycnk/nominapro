@@ -163,7 +163,7 @@ const EmployeeProfile: React.FC<EmployeeProfileProps> = ({ employeeId, onBack, c
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } },
     });
 
-    doc.save(`Hoja_Vida_${employee.nombre}_${employee.apellido}.pdf`);
+    window.open(URL.createObjectURL(doc.output("blob")), "_blank");
   };
 
   if (loading) {

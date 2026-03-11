@@ -581,7 +581,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
 
 
     if (!isGlobal) {
-        pdf.save(`Recibo_${emp.cedula}_${periodo}.pdf`);
+        window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
     }
   };
 
@@ -674,7 +674,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     pdf.text("Firma y Sello Empleador", 135, y + 5);
 
     if (!isGlobal) {
-        pdf.save(`Recibo_Extralegal_${emp.cedula}_${periodo}.pdf`);
+        window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
     }
   };
 
@@ -691,7 +691,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         isFirstPage = false;
     }
 
-    doc.save(`Recibo_Extralegal_Global_${meses[selectedMonth]}_${selectedYear}_${periodo}.pdf`);
+    window.open(URL.createObjectURL(doc.output("blob")), "_blank");
   };
 
   const generateGlobalPDF = async () => {
@@ -712,7 +712,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         isFirstPage = false;
     }
 
-    doc.save(`Nomina_Global_${meses[selectedMonth]}_${selectedYear}_${periodo}.pdf`);
+    window.open(URL.createObjectURL(doc.output("blob")), "_blank");
   };
 
   const handleCerrarQuincena = async () => {
