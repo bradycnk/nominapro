@@ -488,36 +488,38 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     const pageWidth = pdf.internal.pageSize.width;
     const fechaEmision = new Date().toLocaleString('es-VE');
 
+    const drawReceipt = (offsetY: number) => {
+
     // --- Header ---
     try {
         const imgWidth = 25;
-        pdf.addImage(LOGO_URL, 'JPEG', 15, 15, imgWidth, 15);
+        pdf.addImage(LOGO_URL, 'JPEG', 15, offsetY + 15, imgWidth, 15);
     } catch (e) {}
 
     pdf.setFont("courier", "bold");
     pdf.setFontSize(14);
-    pdf.text("RECIBO DE PAGO DE NÓMINA", pageWidth / 2, 25, { align: "center" });
+    pdf.text("RECIBO DE PAGO DE NÓMINA", pageWidth / 2, offsetY + 25, { align: "center" });
 
     pdf.setFontSize(8);
     pdf.setFont("courier", "normal");
-    pdf.text(`Emisión: ${fechaEmision}`, pageWidth - 15, 15, { align: "right" });
+    pdf.text(`Emisión: ${fechaEmision}`, pageWidth - 15, offsetY + 15, { align: "right" });
 
-    let y = 50;
+    let y = offsetY + 45;
     pdf.setFontSize(9);
     pdf.text(`EMPRESA: ${principalBranch?.nombre_id || emp.sucursales?.nombre_id || 'FarmaNomina C.A.'}`, 15, y);
     pdf.text(`RIF: ${principalBranch?.rif || emp.sucursales?.rif || 'J-12345678-9'}`, pageWidth - 15, y, { align: "right" });
-    y += 10;
+    y += 6;
 
     pdf.setFont("courier", "bold");
     pdf.text(`TRABAJADOR: ${emp.nombre} ${emp.apellido}`, 15, y);
     pdf.text(`C.I.: ${emp.cedula}`, pageWidth - 15, y, { align: "right" });
-    y += 5;
+    y += 4;
     pdf.setFont("courier", "normal");
     pdf.text(`Cargo: ${emp.cargo || 'General'}`, 15, y);
     pdf.text(`Período: ${fechaDesde} al ${fechaHasta}`, pageWidth - 15, y, { align: "right" });
-    y += 5;
+    y += 4;
     pdf.text(`Salario Base Mensual (Bs): ${Number(calc.sueldo_base_mensual).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`, 15, y);
-    y += 10;
+    y += 6;
 
     // Tabla Conceptos
     pdf.setFont("courier", "bold");
@@ -525,9 +527,9 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     pdf.text("CANT", 110, y, { align: "right" });
     pdf.text("ASIGNACIONES", 150, y, { align: "right" });
     pdf.text("DEDUCCIONES", 195, y, { align: "right" });
-    y += 5;
+    y += 4;
     pdf.line(15, y, pageWidth - 15, y);
-    y += 5;
+    y += 4;
     pdf.setFont("courier", "normal");
 
     const addRow = (concepto: string, cant: number | string, asignacion: number | null, deduccion: number | null) => {
@@ -535,7 +537,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         if (cant !== '') pdf.text(`${cant}`, 110, y, { align: "right" });
         if (asignacion !== null && asignacion > 0) pdf.text(`${asignacion.toLocaleString('es-VE', {minimumFractionDigits: 2})}`, 150, y, { align: "right" });
         if (deduccion !== null && deduccion > 0) pdf.text(`${deduccion.toLocaleString('es-VE', {minimumFractionDigits: 2})}`, 195, y, { align: "right" });
-        y += 5;
+        y += 4;
     };
 
     if (effectiveConfig.diasLaborados?.enabled) addRow("Días Laborados Art 184", cLaborados.qty + " (días)", cLaborados.total, null);
@@ -566,16 +568,15 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         addRow("Préstamo / Crédito", "", null, cPrestamo.total);
     }
 
-    y += 5;
+    y += 4;
     pdf.line(15, y, pageWidth - 15, y);
-    y += 5;
+    y += 4;
     pdf.setFont("courier", "bold");
     pdf.text("TOTAL NETO A RECIBIR (Bs.):", 15, y);
     pdf.text(`${neto.toLocaleString('es-VE', {minimumFractionDigits: 2})}`, 150, y, { align: "right" });
 
     // Footer firmas
-    y = pageWidth - 50; // Al final de la página (casi)
-    if (y < 200) y = 220; // Asegurar espacio
+    y += 15;
 
     pdf.line(20, y, 90, y);
     pdf.text("Firma Trabajador", 35, y + 5);
@@ -583,6 +584,18 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     pdf.line(120, y, 190, y);
     pdf.text("Firma Empleador", 135, y + 5);
 
+
+        };
+
+    drawReceipt(0);
+    // Línea de corte
+    pdf.setLineDashPattern([2, 2], 0);
+    pdf.line(5, 139, pageWidth - 5, 139);
+    pdf.setLineDashPattern([], 0);
+    pdf.setFontSize(6);
+    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 139, { align: "center" });
+
+    drawReceipt(140);
 
     if (!isGlobal) {
         window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
@@ -598,35 +611,42 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     const endDay = periodo === 'Q1' ? 15 : new Date(selectedYear, selectedMonth + 1, 0).getDate();
     
     // Logo
+        let logoBase64 = '';
     try {
-        const logoBase64 = await getBase64ImageFromUrl(LOGO_URL);
-        pdf.addImage(logoBase64, 'JPEG', 15, 10, 30, 15);
+        logoBase64 = await getBase64ImageFromUrl(LOGO_URL);
     } catch (e) {
-        console.warn("No se pudo cargar el logo para el PDF", e);
+        console.warn("No se pudo cargar el logo", e);
     }
+    const pageWidth = pdf.internal.pageSize.width;
+
+    const drawReceipt2 = (offsetY: number) => {
+    try {
+        if (logoBase64) pdf.addImage(logoBase64, 'JPEG', 15, offsetY + 10, 30, 15);
+    } catch (e) {}
+
 
     pdf.setFontSize(14);
     pdf.setFont("helvetica", "bold");
-    pdf.text("RECIBO DE BONIFICACIÓN EXTRALEGAL", 200, 20, { align: "right" });
+    pdf.text("RECIBO DE BONIFICACIÓN EXTRALEGAL", 200, offsetY + 20, { align: "right" });
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`Período: ${startDay} al ${endDay} de ${meses[selectedMonth]} ${selectedYear}`, 200, 26, { align: "right" });
-    pdf.text(`Tasa Cambio Referencial: Bs. ${tasa.toFixed(2)} / USD`, 200, 32, { align: "right" });
+    pdf.text(`Período: ${startDay} al ${endDay} de ${meses[selectedMonth]} ${selectedYear}`, 200, offsetY + 26, { align: "right" });
+    pdf.text(`Tasa Cambio Referencial: Bs. ${tasa.toFixed(2)} / USD`, 200, offsetY + 32, { align: "right" });
 
     // Datos del Trabajador
     pdf.setFillColor(240, 240, 245);
-    pdf.rect(15, 40, 180, 28, 'F');
+    pdf.rect(15, offsetY + 40, 180, 28, 'F');
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
-    pdf.text("DATOS DEL BENEFICIARIO", 20, 45);
+    pdf.text("DATOS DEL BENEFICIARIO", 20, offsetY + 45);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`Empresa: ${principalBranch?.nombre_id || emp.sucursales?.nombre_id || 'FarmaNomina C.A.'} - RIF: ${principalBranch?.rif || emp.sucursales?.rif || 'J-12345678-9'}`, 20, 50);
-    pdf.text(`Nombres y Apellidos: ${emp.nombre} ${emp.apellido}`, 20, 58);
-    pdf.text(`Cédula de Identidad: V-${emp.cedula}`, 120, 58);
-    pdf.text(`Cargo: ${emp.cargo || 'No especificado'}`, 20, 64);
+    pdf.text(`Empresa: ${principalBranch?.nombre_id || emp.sucursales?.nombre_id || 'FarmaNomina C.A.'} - RIF: ${principalBranch?.rif || emp.sucursales?.rif || 'J-12345678-9'}`, 20, offsetY + 50);
+    pdf.text(`Nombres y Apellidos: ${emp.nombre} ${emp.apellido}`, 20, offsetY + 58);
+    pdf.text(`Cédula de Identidad: V-${emp.cedula}`, 120, offsetY + 58);
+    pdf.text(`Cargo: ${emp.cargo || 'No especificado'}`, 20, offsetY + 64);
     
     // Cabecera de la tabla
-    let y = 75;
+    let y = offsetY + 75;
     pdf.setFillColor(220, 220, 220);
     pdf.rect(15, y, 180, 8, 'F');
     pdf.setFont("helvetica", "bold");
@@ -643,7 +663,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
         pdf.text(detalle, 100, y);
         if (usd !== null && usd !== 0) pdf.text(`$ ${usd.toLocaleString('en-US', {minimumFractionDigits: 2})}`, 140, y);
         if (bs !== null && bs !== 0) pdf.text(`Bs. ${bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`, 170, y);
-        y += 8;
+        y += 6;
     };
 
     addRow("Bono de Reparto (Prorrateo)", `${totalHrs.toFixed(2)} de ${horasBaseQuincena} hrs.`, bonoUsd, bonoBs);
@@ -664,7 +684,7 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     pdf.setTextColor(0, 0, 0); // Reset a negro
 
     // Firmas
-    if (y < 200) y = 220; // Asegurar espacio abajo
+    y += 15;
 
     pdf.line(20, y, 90, y);
     pdf.setFontSize(10);
@@ -677,6 +697,18 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
     pdf.text("Firma y Sello Empleador", 135, y + 5);
+
+        };
+
+    drawReceipt2(0);
+    // Línea de corte
+    pdf.setLineDashPattern([2, 2], 0);
+    pdf.line(5, 139, pageWidth - 5, 139);
+    pdf.setLineDashPattern([], 0);
+    pdf.setFontSize(6);
+    pdf.text("-------------------------------------- Corte por aquí --------------------------------------", pageWidth / 2, 139, { align: "center" });
+
+    drawReceipt2(140);
 
     if (!isGlobal) {
         window.open(URL.createObjectURL(pdf.output("blob")), "_blank");
