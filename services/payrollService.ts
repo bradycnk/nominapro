@@ -1,4 +1,73 @@
 
+export const formatDateKey = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+export const getEasterSunday = (year: number): Date => {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+};
+
+export interface HolidayInfo {
+  name: string;
+  detail: string;
+}
+
+export const getVenezuelanHolidays = (year: number): Record<string, HolidayInfo> => {
+  const holidays: Record<string, HolidayInfo> = {};
+
+  const addHoliday = (date: Date, name: string, detail: string) => {
+    holidays[formatDateKey(date)] = { name, detail };
+  };
+
+  // Feriados fijos de uso nacional
+  addHoliday(new Date(year, 0, 1), 'Año Nuevo', 'Celebración del inicio de año.');
+  addHoliday(new Date(year, 3, 19), '19 de Abril', 'Declaración de la Independencia de Venezuela (1810).');
+  addHoliday(new Date(year, 4, 1), 'Día del Trabajador', 'Conmemoración internacional del trabajo.');
+  addHoliday(new Date(year, 5, 24), 'Batalla de Carabobo', 'Conmemoración de la Batalla de Carabobo (1821).');
+  addHoliday(new Date(year, 6, 5), 'Día de la Independencia', 'Firma del Acta de la Independencia (1811).');
+  addHoliday(new Date(year, 6, 24), 'Natalicio de Simón Bolívar', 'Conmemoración del nacimiento del Libertador.');
+  addHoliday(new Date(year, 9, 12), 'Día de la Resistencia Indígena', 'Conmemoración de la resistencia de los pueblos originarios.');
+  addHoliday(new Date(year, 11, 24), 'Nochebuena', 'Asueto navideño.');
+  addHoliday(new Date(year, 11, 25), 'Navidad', 'Celebración de la Navidad.');
+  addHoliday(new Date(year, 11, 31), 'Fin de Año', 'Asueto de cierre de año.');
+
+  // Feriados móviles (basados en Pascua)
+  const easterSunday = getEasterSunday(year);
+  const carnavalMonday = new Date(easterSunday);
+  carnavalMonday.setDate(easterSunday.getDate() - 48);
+  const carnavalTuesday = new Date(easterSunday);
+  carnavalTuesday.setDate(easterSunday.getDate() - 47);
+  const holyThursday = new Date(easterSunday);
+  holyThursday.setDate(easterSunday.getDate() - 3);
+  const holyFriday = new Date(easterSunday);
+  holyFriday.setDate(easterSunday.getDate() - 2);
+
+  addHoliday(carnavalMonday, 'Lunes de Carnaval', 'Inicio del asueto de Carnaval.');
+  addHoliday(carnavalTuesday, 'Martes de Carnaval', 'Cierre del asueto de Carnaval.');
+  addHoliday(holyThursday, 'Jueves Santo', 'Conmemoración de Semana Santa.');
+  addHoliday(holyFriday, 'Viernes Santo', 'Conmemoración de Semana Santa.');
+
+  return holidays;
+};
+
+
 import type { ConfigGlobal, Empleado, Asistencia } from '../types.ts';
 
 // Constantes Legales LOTTT
@@ -114,6 +183,11 @@ export const processAttendanceRecords = (asistencias: Asistencia[]) => {
   let totalDescanso = 0;
   let totalNightHours = 0; 
   let diasTrabajados = 0;
+  let domingosLaborados = 0;
+  let feriadosLaborados = 0;
+  let turnosDiurnos = 0;
+  let turnosMixtos = 0;
+  let turnosNocturnos = 0;
 
   asistencias.forEach(att => {
     if (att.estado === 'presente' && att.hora_entrada && att.hora_salida) {
@@ -124,10 +198,26 @@ export const processAttendanceRecords = (asistencias: Asistencia[]) => {
       totalDescanso += breakdown.descanso;
       totalNightHours += breakdown.nightHours;
       diasTrabajados++;
+
+      const dateObj = new Date(att.fecha);
+      const isSunday = dateObj.getDay() === 0 || dateObj.getDay() === 6; // En el archivo el isWeekend es dia 0 o 6 (LOTTT)
+      if (isSunday) {
+        domingosLaborados++;
+      }
+
+      const year = dateObj.getFullYear();
+      const holidays = getVenezuelanHolidays(year);
+      if (holidays[att.fecha]) {
+        feriadosLaborados++;
+      }
+
+      if (breakdown.shiftType === 'Diurna') turnosDiurnos++;
+      else if (breakdown.shiftType === 'Mixta') turnosMixtos++;
+      else if (breakdown.shiftType === 'Nocturna') turnosNocturnos++;
     }
   });
 
-  return { totalNormal, totalExtraDiurna, totalExtraNocturna, totalDescanso, totalNightHours, diasTrabajados };
+  return { totalNormal, totalExtraDiurna, totalExtraNocturna, totalDescanso, totalNightHours, diasTrabajados, domingosLaborados, feriadosLaborados, turnosDiurnos, turnosMixtos, turnosNocturnos };
 };
 
 export const calculateSeniorityYears = (fechaIngreso: string): number => {

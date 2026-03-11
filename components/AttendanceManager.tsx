@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase.ts';
 import { Empleado, Asistencia } from '../types.ts';
-import { calculateDetailedShift } from '../services/payrollService.ts';
+import { calculateDetailedShift, getVenezuelanHolidays, formatDateKey } from '../services/payrollService.ts';
 
 interface CalendarDayDraft {
   estado: Asistencia['estado'];
@@ -17,7 +17,7 @@ interface HolidayInfo {
 }
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
-const formatDateKey = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
 
 const getEasterSunday = (year: number) => {
   const a = year % 19;
@@ -37,43 +37,6 @@ const getEasterSunday = (year: number) => {
   return new Date(year, month - 1, day);
 };
 
-const getVenezuelanHolidays = (year: number): Record<string, HolidayInfo> => {
-  const holidays: Record<string, HolidayInfo> = {};
-
-  const addHoliday = (date: Date, name: string, detail: string) => {
-    holidays[formatDateKey(date)] = { name, detail };
-  };
-
-  // Feriados fijos de uso nacional
-  addHoliday(new Date(year, 0, 1), 'Año Nuevo', 'Celebración del inicio de año.');
-  addHoliday(new Date(year, 3, 19), '19 de Abril', 'Declaración de la Independencia de Venezuela (1810).');
-  addHoliday(new Date(year, 4, 1), 'Día del Trabajador', 'Conmemoración internacional del trabajo.');
-  addHoliday(new Date(year, 5, 24), 'Batalla de Carabobo', 'Conmemoración de la Batalla de Carabobo (1821).');
-  addHoliday(new Date(year, 6, 5), 'Día de la Independencia', 'Firma del Acta de la Independencia (1811).');
-  addHoliday(new Date(year, 6, 24), 'Natalicio de Simón Bolívar', 'Conmemoración del nacimiento del Libertador.');
-  addHoliday(new Date(year, 9, 12), 'Día de la Resistencia Indígena', 'Conmemoración de la resistencia de los pueblos originarios.');
-  addHoliday(new Date(year, 11, 24), 'Nochebuena', 'Asueto navideño.');
-  addHoliday(new Date(year, 11, 25), 'Navidad', 'Celebración de la Navidad.');
-  addHoliday(new Date(year, 11, 31), 'Fin de Año', 'Asueto de cierre de año.');
-
-  // Feriados móviles (basados en Pascua)
-  const easterSunday = getEasterSunday(year);
-  const carnavalMonday = new Date(easterSunday);
-  carnavalMonday.setDate(easterSunday.getDate() - 48);
-  const carnavalTuesday = new Date(easterSunday);
-  carnavalTuesday.setDate(easterSunday.getDate() - 47);
-  const holyThursday = new Date(easterSunday);
-  holyThursday.setDate(easterSunday.getDate() - 3);
-  const holyFriday = new Date(easterSunday);
-  holyFriday.setDate(easterSunday.getDate() - 2);
-
-  addHoliday(carnavalMonday, 'Lunes de Carnaval', 'Inicio del asueto de Carnaval.');
-  addHoliday(carnavalTuesday, 'Martes de Carnaval', 'Cierre del asueto de Carnaval.');
-  addHoliday(holyThursday, 'Jueves Santo', 'Conmemoración de Semana Santa.');
-  addHoliday(holyFriday, 'Viernes Santo', 'Conmemoración de Semana Santa.');
-
-  return holidays;
-};
 
 const AttendanceManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'daily' | 'calendar'>('daily');
