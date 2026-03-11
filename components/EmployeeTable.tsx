@@ -175,7 +175,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ config }) => {
               </tr>
             ) : (
               filteredEmployees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group">
+                <tr key={emp.id} className="hover:bg-emerald-50/50 transition-all duration-300 group border-b border-slate-100 last:border-0 hover:shadow-md hover:z-10 relative">
                   <td className="px-8 py-6">
                     <div className="w-14 h-14 rounded-full bg-slate-100 border-2 border-white shadow-md flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110">
                       {emp.foto_url ? (
