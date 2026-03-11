@@ -467,10 +467,12 @@ const AttendanceManager: React.FC = () => {
               key={dateStr}
               type="button"
               onClick={() => openDayEditor(dateStr)}
-              className={`h-28 border rounded-xl p-2 flex flex-col relative transition-all hover:shadow-md text-left ${
+              aria-label={`Fecha: ${dateStr}. Estado: ${record?.estado || 'Sin registro'}`}
+              title={`Fecha: ${dateStr}. Estado: ${record?.estado || 'Sin registro'}`}
+              className={`h-28 border rounded-xl p-2 flex flex-col relative transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 ${
                 bgColor
-              } ${borderColor} ${record?.cerrado ? 'opacity-80' : ''} ${
-                isSelectedDay ? 'ring-2 ring-emerald-500 ring-offset-2' : ''
+              } ${borderColor} ${record?.cerrado ? 'opacity-80 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer'} ${
+                isSelectedDay ? 'ring-2 ring-emerald-500 ring-offset-2 z-10 shadow-md' : ''
               }`}
             >
               {/* Header Día */}
