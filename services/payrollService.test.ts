@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { calculateDetailedShift } from './payrollService.ts';
+import { calculateDetailedShift, timeToDecimal } from './payrollService.ts';
 
 // Tests for shift crossing midnight
 
@@ -90,4 +90,30 @@ test('calculateDetailedShift: standard early morning shift (04:00 to 12:00)', ()
     nightHours: 1,
     shiftType: 'Mixta'
   });
+});
+
+// Tests for timeToDecimal
+
+test('timeToDecimal: empty input returns 0', () => {
+  assert.strictEqual(timeToDecimal(''), 0);
+});
+
+test('timeToDecimal: 00:00 returns 0', () => {
+  assert.strictEqual(timeToDecimal('00:00'), 0);
+});
+
+test('timeToDecimal: 08:30 returns 8.5', () => {
+  assert.strictEqual(timeToDecimal('08:30'), 8.5);
+});
+
+test('timeToDecimal: 15:45 returns 15.75', () => {
+  assert.strictEqual(timeToDecimal('15:45'), 15.75);
+});
+
+test('timeToDecimal: 10:30 returns 10.5', () => {
+  assert.strictEqual(timeToDecimal('10:30'), 10.5);
+});
+
+test('timeToDecimal: 12:15 returns 12.25', () => {
+  assert.strictEqual(timeToDecimal('12:15'), 12.25);
 });
