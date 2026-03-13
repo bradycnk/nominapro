@@ -255,12 +255,12 @@ const AttendanceManager: React.FC = () => {
         estado: dayDraft.estado,
         // Combinamos la fecha con la hora para los nuevos campos timestamptz
         hora_entrada: dayDraft.estado === 'presente' && dayDraft.hora_entrada 
-          ? `${selectedDate}T${dayDraft.hora_entrada}:00Z` 
+          ? `${selectedDate}T${dayDraft.hora_entrada}:00` 
           : null,
         hora_salida: dayDraft.estado === 'presente' && dayDraft.hora_salida 
           ? (dayDraft.hora_salida < dayDraft.hora_entrada 
-              ? `${new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}T${dayDraft.hora_salida}:00Z`
-              : `${selectedDate}T${dayDraft.hora_salida}:00Z`)
+              ? `${new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}T${dayDraft.hora_salida}:00`
+              : `${selectedDate}T${dayDraft.hora_salida}:00`)
           : null,
         observaciones: obs || null,
       };
@@ -322,7 +322,7 @@ const AttendanceManager: React.FC = () => {
       const payload = {
         empleado_id: empId,
         fecha: today,
-        hora_entrada: `${today}T${data.hora_entrada}:00Z`,
+        hora_entrada: `${today}T${data.hora_entrada}:00`,
         estado: 'presente' as const
       };
 
@@ -365,7 +365,7 @@ const AttendanceManager: React.FC = () => {
       const { error } = await supabase
         .from('asistencias')
         .update({ 
-          hora_salida: `${fechaSalida}T${data.hora_salida}:00Z` 
+          hora_salida: `${fechaSalida}T${data.hora_salida}:00` 
         })
         .eq('id', savedData.id);
 
@@ -971,6 +971,62 @@ const AttendanceManager: React.FC = () => {
                      )}
                    </div>
                  </div>
+
+                 {/* Detalles de la Jornada (Solo si está presente) */}
+                 {dayDraft.estado === 'presente' && dayDraft.hora_entrada && dayDraft.hora_salida && (
+                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                     <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análisis LOTTT</span>
+                        {(() => {
+                          const shift = calculateDetailedShift(
+                            `${selectedDate}T${dayDraft.hora_entrada}:00`, 
+                            (dayDraft.hora_salida < dayDraft.hora_entrada 
+                              ? `${new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}T${dayDraft.hora_salida}:00`
+                              : `${selectedDate}T${dayDraft.hora_salida}:00`),
+                            selectedDate
+                          );
+                          
+                          const badgeColors: Record<string, string> = {
+                            'Diurna': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                            'Mixta': 'bg-amber-100 text-amber-700 border-amber-200',
+                            'Nocturna': 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                          };
+
+                          return (
+                            <div className="flex flex-col gap-3 w-full mt-2">
+                              {/* Fila superior: Tipo de Jornada y Total */}
+                              <div className="flex justify-between items-center">
+                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase border ${badgeColors[shift.shiftType] || 'bg-slate-100'}`}>
+                                  {shift.shiftType === 'Diurna' ? '☀️' : shift.shiftType === 'Mixta' ? '🌗' : '🌙'} Jornada {shift.shiftType}
+                                </span>
+                                <span className="text-lg font-black text-slate-800">
+                                  {(shift.normal + shift.extraDiurna + shift.extraNocturna + shift.descanso).toFixed(1)}h <span className="text-[10px] text-slate-400 font-bold uppercase">Totales</span>
+                                </span>
+                              </div>
+
+                              {/* Grid de Desglose */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Horas Normales</p>
+                                  <p className="text-sm font-black text-emerald-600">{shift.normal.toFixed(1)}h</p>
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Horas Extras</p>
+                                  <p className="text-sm font-black text-rose-500">{(shift.extraDiurna + shift.extraNocturna).toFixed(1)}h</p>
+                                </div>
+                                {shift.nightHours > 0 && (
+                                  <div className="bg-white p-2 rounded-xl border border-slate-100 col-span-2">
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter text-center">Recargo Bono Nocturno (30%)</p>
+                                    <p className="text-sm font-black text-indigo-600 text-center">{shift.nightHours.toFixed(1)}h laboradas de noche</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                     </div>
+                   </div>
+                 )}
 
                  <div>
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Observaciones</label>

@@ -21,6 +21,7 @@ export const timeToDecimal = (timeStr: string): number => {
   // Si es un ISO String (contiene 'T')
   if (timeStr.includes('T')) {
     const date = new Date(timeStr);
+    // Usamos hora local del sistema para coincidir con la entrada del usuario
     return date.getHours() + (date.getMinutes() / 60);
   }
 
@@ -45,27 +46,21 @@ export const calculateDetailedShift = (entrada: string, salida: string, fecha: s
 
   let start = timeToDecimal(entrada);
   let end = timeToDecimal(salida);
+  let duration = 0;
   
-  // Manejo de turno que cruza medianoche
-  // Si es formato HH:MM y end < start, sumamos 24.
-  // Si es formato ISO, la diferencia de horas ya será correcta si las fechas son distintas.
+  // Manejo de turno con ISO Strings (Precisión máxima)
   if (entrada.includes('T') && salida.includes('T')) {
     const d1 = new Date(entrada);
     const d2 = new Date(salida);
     const diffMs = d2.getTime() - d1.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    
-    // Si la diferencia es real (pasó de un día a otro), ajustamos 'end'
-    if (d2.getDate() !== d1.getDate() || d2.getMonth() !== d1.getMonth()) {
-       end = start + diffHours;
-    } else if (end < start) {
-       end += 24;
-    }
-  } else if (end < start) {
-    end += 24; 
+    duration = Math.max(0, diffMs / (1000 * 60 * 60));
+    // Ajustamos 'end' para que las funciones de solapamiento funcionen bien (ej: 25h si pasó medianoche)
+    end = start + duration;
+  } else {
+    // Formato HH:MM antiguo o mixto
+    if (end < start) end += 24; 
+    duration = end - start;
   }
-
-  const duration = end - start;
   const dateObj = new Date(fecha);
   const day = dateObj.getDay(); // 0 Dom, 6 Sab
   const isWeekend = day === 0 || day === 6;
@@ -85,11 +80,12 @@ export const calculateDetailedShift = (entrada: string, salida: string, fecha: s
   let dailyLimit = LIMIT_DIURNAL;
   let paidNightHours = realNightHours;
 
-  if (realNightHours > 4 || (start >= 19 && end <= 29)) {
-    // Si labora más de 4 horas de noche, toda la jornada se considera Nocturna
+  // REGLA LOTTT: Si la jornada tiene más de 4 horas nocturnas, se considera NOCTURNA completa.
+  // REGLA LOTTT: Si tiene entre 0 y 4 horas nocturnas, es MIXTA.
+  if (realNightHours >= 4) {
     shiftType = 'Nocturna';
     dailyLimit = LIMIT_NOCTURNAL;
-    paidNightHours = duration; // El bono nocturno aplica a TODA la jornada
+    paidNightHours = duration; // Bono nocturno sobre toda la jornada
   } else if (realNightHours > 0) {
     shiftType = 'Mixta';
     dailyLimit = LIMIT_MIXED;
