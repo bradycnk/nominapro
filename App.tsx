@@ -127,7 +127,16 @@ const App: React.FC = () => {
   }, [session]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      // Usamos scope: 'local' para asegurar que se limpie la sesión del navegador
+      // incluso si el servidor de Supabase devuelve 403 (token expirado o inválido)
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+    } finally {
+      // Forzamos la limpieza del estado local por seguridad
+      setSession(null);
+    }
   };
 
   if (loading) {

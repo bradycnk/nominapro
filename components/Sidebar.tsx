@@ -85,7 +85,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   ];
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+      // Opcional: recargar la página para limpiar estado si falla críticamente
+      window.location.reload();
+    }
   };
 
   return (
