@@ -86,7 +86,10 @@ const normalizeReceiptPrintConfig = (rawConfig: unknown): ReceiptPrintConfig => 
   };
 };
 
-const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config }) => {
+const PayrollProcessor: React.FC<{ 
+  config: ConfigGlobal | null;
+  onConfigUpdated?: () => void;
+}> = ({ config, onConfigUpdated }) => {
   const [employees, setEmployees] = useState<Empleado[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [principalBranch, setPrincipalBranch] = useState<any>(null);
@@ -372,6 +375,8 @@ const PayrollProcessor: React.FC<{ config: ConfigGlobal | null }> = ({ config })
           .eq('id', config.id);
 
         if (error) throw error;
+        // Refresco instantáneo para evitar recargar la página
+        if (onConfigUpdated) onConfigUpdated();
       }
       
       setShowConfigModal(false);

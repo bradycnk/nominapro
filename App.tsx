@@ -170,7 +170,10 @@ const App: React.FC = () => {
         )}
         {visitedTabs.includes('nomina') && (
           <div className={activeTab === 'nomina' ? 'block' : 'hidden'}>
-            <PayrollProcessor config={config} />
+            <PayrollProcessor 
+              config={config} 
+              onConfigUpdated={fetchData} 
+            />
           </div>
         )}
         {visitedTabs.includes('prestaciones') && (
