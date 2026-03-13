@@ -62,6 +62,8 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
           salario_minimo_vef: formData.salario_minimo_vef,
           dias_utilidades: formData.dias_utilidades,
           dias_bono_vacacional_base: formData.dias_bono_vacacional_base,
+          receipt_print_config: formData.receipt_print_config || config.receipt_print_config,
+          prorrateo_config: formData.prorrateo_config || config.prorrateo_config,
           theme: formData.theme || 'light',
           accent_color: formData.accent_color || 'green',
           updated_at: new Date().toISOString()
