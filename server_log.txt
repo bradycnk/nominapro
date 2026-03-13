@@ -1,0 +1,9 @@
+
+> farmanomina-pro---gestión-lottt@0.0.0 dev
+> vite --port 3000
+
+
+  VITE v6.4.1  ready in 552 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://192.168.0.179:3000/
