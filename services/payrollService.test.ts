@@ -1,6 +1,7 @@
+import type { Asistencia } from "../types.ts";
 import test from 'node:test';
 import assert from 'node:assert';
-import { calculateDetailedShift } from './payrollService.ts';
+import { calculateDetailedShift, processAttendanceRecords } from './payrollService.ts';
 
 // Tests for shift crossing midnight
 
@@ -89,5 +90,85 @@ test('calculateDetailedShift: standard early morning shift (04:00 to 12:00)', ()
     descanso: 0,
     nightHours: 1,
     shiftType: 'Mixta'
+  });
+});
+
+
+// Tests for processAttendanceRecords
+
+test('processAttendanceRecords: empty array returns zeroes', () => {
+  const result = processAttendanceRecords([]);
+  assert.deepStrictEqual(result, {
+    totalNormal: 0,
+    totalExtraDiurna: 0,
+    totalExtraNocturna: 0,
+    totalDescanso: 0,
+    totalNightHours: 0,
+    diasTrabajados: 0,
+  });
+});
+
+test('processAttendanceRecords: ignores records with invalid state or missing times', () => {
+  const asistencias: Asistencia[] = [
+    { id: '1', empleado_id: 'e1', fecha: '2023-10-18', estado: 'falta' },
+    { id: '2', empleado_id: 'e1', fecha: '2023-10-18', estado: 'presente', hora_entrada: '08:00' }, // missing salida
+    { id: '3', empleado_id: 'e1', fecha: '2023-10-18', estado: 'presente', hora_salida: '17:00' }, // missing entrada
+    { id: '4', empleado_id: 'e1', fecha: '2023-10-18', estado: 'presente', hora_entrada: '', hora_salida: '17:00' } // empty entrada
+  ];
+
+  const result = processAttendanceRecords(asistencias);
+  assert.deepStrictEqual(result, {
+    totalNormal: 0,
+    totalExtraDiurna: 0,
+    totalExtraNocturna: 0,
+    totalDescanso: 0,
+    totalNightHours: 0,
+    diasTrabajados: 0, // No valid 'presente' records with both times
+  });
+});
+
+test('processAttendanceRecords: correctly accumulates totals for a single standard shift', () => {
+  const asistencias: Asistencia[] = [
+    { id: '1', empleado_id: 'e1', fecha: '2023-10-18', estado: 'presente', hora_entrada: '08:00', hora_salida: '16:00' } // 8 hours diurna
+  ];
+
+  const result = processAttendanceRecords(asistencias);
+  assert.deepStrictEqual(result, {
+    totalNormal: 8,
+    totalExtraDiurna: 0,
+    totalExtraNocturna: 0,
+    totalDescanso: 0,
+    totalNightHours: 0,
+    diasTrabajados: 1,
+  });
+});
+
+test('processAttendanceRecords: correctly accumulates totals across multiple shifts and distinct days', () => {
+  const asistencias: Asistencia[] = [
+    // Wed: 8 hours diurna (08:00 - 16:00)
+    { id: '1', empleado_id: 'e1', fecha: '2023-10-18', estado: 'presente', hora_entrada: '08:00', hora_salida: '16:00' },
+    // Thu: 10 hours mixed (04:00 - 14:00) -> 1h night, limit 7.5, extra 2.5 diurna
+    { id: '2', empleado_id: 'e1', fecha: '2023-10-19', estado: 'presente', hora_entrada: '04:00', hora_salida: '14:00' },
+    // Thu again (same day, distinct shift): 2 hours diurna (15:00 - 17:00)
+    { id: '3', empleado_id: 'e1', fecha: '2023-10-19', estado: 'presente', hora_entrada: '15:00', hora_salida: '17:00' },
+  ];
+
+  const result = processAttendanceRecords(asistencias);
+
+  // Wed: normal=8, extraDiurna=0, extraNocturna=0, descanso=0, nightHours=0
+  // Thu (shift 1): normal=7.5, extraDiurna=2.5, extraNocturna=0, descanso=0, nightHours=1
+  // Thu (shift 2): normal=2, extraDiurna=0, extraNocturna=0, descanso=0, nightHours=0
+  // Totals: normal = 8 + 7.5 + 2 = 17.5
+  // Totals: extraDiurna = 0 + 2.5 + 0 = 2.5
+  // Totals: nightHours = 0 + 1 + 0 = 1
+  // diasTrabajados: 2 unique days ('2023-10-18', '2023-10-19')
+
+  assert.deepStrictEqual(result, {
+    totalNormal: 17.5,
+    totalExtraDiurna: 2.5,
+    totalExtraNocturna: 0,
+    totalDescanso: 0,
+    totalNightHours: 1,
+    diasTrabajados: 2,
   });
 });
