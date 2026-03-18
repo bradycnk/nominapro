@@ -334,20 +334,20 @@ const PayrollProcessor: React.FC<{
       deduccionPorId.set(item.id, item);
     }
 
-    const updates = Array.from(deduccionPorId.entries()).map(([id, item]) =>
-      supabase
-        .from('adelantos')
-        .update({
-          saldo_pendiente: item.newSaldo,
-          estado: item.newSaldo <= 0 ? 'pagado' : 'aprobado',
-          ultimo_periodo_descuento: currentPayrollPeriodKey
-        })
-        .eq('id', id)
-    );
+    const upsertData = Array.from(deduccionPorId.entries()).map(([id, item]) => ({
+      id,
+      saldo_pendiente: item.newSaldo,
+      estado: item.newSaldo <= 0 ? 'pagado' : 'aprobado',
+      ultimo_periodo_descuento: currentPayrollPeriodKey
+    }));
 
-    const results = await Promise.all(updates);
-    const failed = results.find((result) => result.error);
-    if (failed?.error) throw failed.error;
+    if (upsertData.length > 0) {
+      const { error } = await supabase
+        .from('adelantos')
+        .upsert(upsertData);
+
+      if (error) throw error;
+    }
   };
 
   const handleSaveReceiptConfig = async () => {
