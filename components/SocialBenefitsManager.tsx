@@ -18,8 +18,10 @@ interface BenefitSummary {
 const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config }) => {
   const [summaries, setSummaries] = useState<BenefitSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Empleado | null>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSummaries();
@@ -27,14 +29,17 @@ const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config })
 
   const fetchSummaries = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data: employees } = await supabase.from('empleados').select('*').eq('activo', true);
-      const { data: benefits } = await supabase.from('historial_prestaciones').select('*');
+      const { data: employees, error: empError } = await supabase.from('empleados').select('*').eq('activo', true);
+      if (empError) throw empError;
+      const { data: benefits, error: benError } = await supabase.from('historial_prestaciones').select('*');
+      if (benError) throw benError;
 
       if (employees) {
         const calculatedSummaries = employees.map(emp => {
           const empBenefits = benefits?.filter(b => b.empleado_id === emp.id) || [];
-          
+
           const totalVef = empBenefits.reduce((sum, b) => sum + Number(b.monto_vef), 0);
           const totalUsd = empBenefits.reduce((sum, b) => sum + Number(b.monto_usd), 0);
           const diasTotales = empBenefits.reduce((sum, b) => sum + (b.dias || 0), 0);
@@ -50,22 +55,30 @@ const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config })
         });
         setSummaries(calculatedSummaries);
       }
-    } catch (error) {
-      console.error("Error fetching benefits:", error);
+    } catch (err) {
+      console.error("Error fetching benefits:", err);
+      setError("Error al cargar las prestaciones sociales. Por favor, intenta de nuevo.");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchHistory = async (empId: string) => {
-    const { data } = await supabase
-      .from('historial_prestaciones')
-      .select('*')
-      .eq('empleado_id', empId)
-      .order('anio', { ascending: false })
-      .order('trimestre', { ascending: false })
-      .order('mes', { ascending: false });
-    setHistory(data || []);
+    setHistoryError(null);
+    try {
+      const { data, error: histError } = await supabase
+        .from('historial_prestaciones')
+        .select('*')
+        .eq('empleado_id', empId)
+        .order('anio', { ascending: false })
+        .order('trimestre', { ascending: false })
+        .order('mes', { ascending: false });
+      if (histError) throw histError;
+      setHistory(data || []);
+    } catch (err) {
+      console.error("Error fetching history:", err);
+      setHistoryError("Error al cargar el historial de este empleado.");
+    }
   };
 
   const handleViewDetails = (summary: BenefitSummary) => {
@@ -101,7 +114,9 @@ const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config })
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                 <tr><td colSpan={6} className="text-center py-10">Cargando datos...</td></tr>
+                <tr><td colSpan={6} className="text-center py-10 text-slate-400">Cargando datos...</td></tr>
+              ) : error ? (
+                <tr><td colSpan={6} className="text-center py-10 text-red-500 font-semibold">{error}</td></tr>
               ) : summaries.map((s) => (
                 <tr key={s.empleado.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
@@ -177,14 +192,16 @@ const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config })
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {history.map((h, i) => (
+                {historyError ? (
+                  <tr><td colSpan={5} className="text-center py-6 text-red-500 font-semibold">{historyError}</td></tr>
+                ) : history.map((h, i) => (
                   <tr key={i} className="text-sm">
                     <td className="px-6 py-4 font-bold text-slate-600">
                       {h.trimestre ? `T${h.trimestre} - ${h.anio}` : `${h.mes}/${h.anio}`}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`capitalize px-2 py-1 rounded text-[10px] font-bold ${
-                        h.tipo === 'trimestral' ? 'bg-blue-100 text-blue-700' : 
+                        h.tipo === 'trimestral' ? 'bg-blue-100 text-blue-700' :
                         h.tipo === 'adicional' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
                       }`}>
                         {h.tipo}
@@ -194,7 +211,8 @@ const SocialBenefitsManager: React.FC<SocialBenefitsManagerProps> = ({ config })
                     <td className="px-6 py-4 text-slate-500">Bs. {Number(h.salario_integral_diario_vef).toLocaleString('es-VE')}</td>
                     <td className="px-6 py-4 text-right font-black text-slate-800">Bs. {Number(h.monto_vef).toLocaleString('es-VE')}</td>
                   </tr>
-                ))}
+                ))
+                }
               </tbody>
             </table>
           </div>

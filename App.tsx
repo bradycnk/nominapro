@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [estimatedPayrollVEF, setEstimatedPayrollVEF] = useState(0);
+  const [bcvSyncError, setBcvSyncError] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -66,7 +67,11 @@ const App: React.FC = () => {
     }
 
     const newRate = await fetchBcvRate();
-    if (newRate <= 0 || Math.abs(newRate - currentConfig.tasa_bcv) <= 0.0001) {
+    if (newRate <= 0) {
+      setBcvSyncError(true);
+      return;
+    }
+    if (Math.abs(newRate - currentConfig.tasa_bcv) <= 0.0001) {
       return;
     }
 
@@ -266,6 +271,24 @@ const App: React.FC = () => {
           </div>
         </header>
 
+        {bcvSyncError && (
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            <svg className="h-5 w-5 shrink-0 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>
+              <strong>Aviso:</strong> No se pudo sincronizar la tasa BCV automaticamente. Se esta usando el ultimo valor guardado ({config?.tasa_bcv ?? '—'} Bs/$).
+            </span>
+            <button
+              type="button"
+              onClick={() => setBcvSyncError(false)}
+              className="ml-auto shrink-0 text-yellow-600 hover:text-yellow-800"
+              aria-label="Cerrar aviso"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {renderContent()}
       </main>
 
