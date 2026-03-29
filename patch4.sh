@@ -1,0 +1,1 @@
+sed -i 's/const \[globalBonoBs, setGlobalBonoBs\] = useState<number | '\'''\''>(0);/const \[globalBonoBs, setGlobalBonoBs\] = useState<number | '\'''\''>(0);\n  const \[globalBonoUsd, setGlobalBonoUsd\] = useState<number | '\'''\''>(0);/g' components/PayrollProcessor.tsx
