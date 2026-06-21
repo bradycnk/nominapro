@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { ConfigGlobal } from '../types';
 import { fetchBcvRate } from '../services/payrollService';
+import NumberInput from './NumberInput';
 
 interface ConfigurationProps {
   config: ConfigGlobal | null;
@@ -27,6 +28,13 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
     setFormData(prev => ({
       ...prev,
       [name]: parseFloat(value) || 0
+    }));
+  };
+
+  const handleNumberChange = (name: keyof ConfigGlobal, value: number | '') => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value === '' ? 0 : value
     }));
   };
 
@@ -147,12 +155,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Bs.</span>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    name="tasa_bcv"
-                    value={formData.tasa_bcv || ''}
-                    onChange={handleChange}
+                  <NumberInput
+                    decimals={4}
+                    value={formData.tasa_bcv ?? ''}
+                    onValueChange={(v) => handleNumberChange('tasa_bcv', v)}
                     className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-200 bg-white text-xl font-black text-slate-800 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
                   />
                 </div>
@@ -249,11 +255,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
                         <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Cestaticket Base ($)</label>
-                        <input
-                            type="number"
-                            name="cestaticket_usd"
-                            value={formData.cestaticket_usd || ''}
-                            onChange={handleChange}
+                        <NumberInput
+                            decimals={2}
+                            value={formData.cestaticket_usd ?? ''}
+                            onValueChange={(v) => handleNumberChange('cestaticket_usd', v)}
                             className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700"
                         />
                         <p className="text-[10px] text-slate-400 mt-2">Valor mensual en dólares anclado al BCV.</p>
@@ -261,11 +266,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
 
                     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
                         <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Salario Mínimo (Bs.)</label>
-                        <input
-                            type="number"
-                            name="salario_minimo_vef"
-                            value={formData.salario_minimo_vef || ''}
-                            onChange={handleChange}
+                        <NumberInput
+                            decimals={2}
+                            value={formData.salario_minimo_vef ?? ''}
+                            onValueChange={(v) => handleNumberChange('salario_minimo_vef', v)}
                             className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700"
                         />
                         <p className="text-[10px] text-slate-400 mt-2">Base mínima legal vigente en Bolívares.</p>
@@ -273,11 +277,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
                     
                     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
                         <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Días de Utilidades</label>
-                        <input
-                            type="number"
-                            name="dias_utilidades"
-                            value={formData.dias_utilidades || ''}
-                            onChange={handleChange}
+                        <NumberInput
+                            decimals={0}
+                            value={formData.dias_utilidades ?? ''}
+                            onValueChange={(v) => handleNumberChange('dias_utilidades', v)}
                             className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700"
                         />
                         <p className="text-[10px] text-slate-400 mt-2">Días a pagar por concepto de utilidades anuales.</p>
@@ -285,11 +288,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ config, onUpdate }) => {
 
                     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
                         <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2">Bono Vacacional Base (Días)</label>
-                        <input
-                            type="number"
-                            name="dias_bono_vacacional_base"
-                            value={formData.dias_bono_vacacional_base || ''}
-                            onChange={handleChange}
+                        <NumberInput
+                            decimals={0}
+                            value={formData.dias_bono_vacacional_base ?? ''}
+                            onValueChange={(v) => handleNumberChange('dias_bono_vacacional_base', v)}
                             className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700"
                         />
                          <p className="text-[10px] text-slate-400 mt-2">Días base + 1 día adicional por año de servicio.</p>

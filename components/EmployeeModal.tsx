@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase.ts';
 import { CargaFamiliar, Empleado, Sucursal, ConfigGlobal } from '../types.ts';
+import NumberInput from './NumberInput.tsx';
 
 interface EmployeeModalProps {
   isOpen: boolean;
@@ -236,9 +237,8 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, employee
     if (file) setCvName(file.name);
   };
 
-  const handleSalarioBsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    const bsAmount = Number.isNaN(val) ? 0 : val;
+  const handleSalarioBsChange = (val: number | '') => {
+    const bsAmount = val === '' ? 0 : val;
     const usdAmount = tasaBcv > 0 && bsAmount > 0 ? parseFloat((bsAmount / tasaBcv).toFixed(2)) : 0;
 
     setFormData((prev) => ({
@@ -784,12 +784,11 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, employee
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative items-start">
                 <div>
                   <label className={labelClasses}>Salario Base Mensual (Bs.) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
+                  <NumberInput
+                    decimals={2}
                     className={`${inputClasses} text-2xl font-bold py-5`}
                     value={formData.salario_base_vef}
-                    onChange={handleSalarioBsChange}
+                    onValueChange={handleSalarioBsChange}
                   />
                   <div className="text-[9px] text-slate-400 mt-2 font-bold uppercase tracking-wider">
                     Tasa BCV aplicada: <span className="text-emerald-600">Bs. {tasaBcv}</span>
@@ -803,12 +802,12 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, employee
                 <div>
                   <label className={labelClasses}>Ref. USD Indexado (calculado)</label>
                   <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
+                    <NumberInput
+                      decimals={2}
                       readOnly
                       className={`${inputClasses} text-2xl font-bold py-5 pr-12 bg-slate-50 text-slate-500`}
                       value={formData.salario_usd}
+                      onValueChange={() => {}}
                     />
                     <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">🔒</span>
                   </div>

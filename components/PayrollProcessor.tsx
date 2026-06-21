@@ -4,6 +4,7 @@ import { Empleado, ConfigGlobal, Asistencia, Adelanto, ReceiptPrintConfig, Nomin
 import { calculateDetailedShift, calculatePayroll, fetchBcvRate, processAttendanceRecords } from '../services/payrollService.ts';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import NumberInput from './NumberInput.tsx';
 
 
 const getBase64ImageFromUrl = async (url: string): Promise<string> => {
@@ -1885,13 +1886,13 @@ const PayrollProcessor: React.FC<{
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Monto ($ USD)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">$</span>
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimals={2}
                       className="w-full pl-8 p-3 border border-slate-200 rounded-xl font-black text-xl text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                       placeholder="0.00"
                       value={extraAssigns[selectedExtraAssignEmpId] || ''}
-                      onChange={(e) => {
-                         const val = Number(e.target.value);
+                      onValueChange={(v) => {
+                         const val = v === '' ? 0 : v;
                          setExtraAssigns(prev => ({...prev, [selectedExtraAssignEmpId]: val}));
                          setExtraAssignsData(prev => ({
                            ...prev,
@@ -1939,13 +1940,13 @@ const PayrollProcessor: React.FC<{
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Monto ($ USD)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500 font-bold">$</span>
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimals={2}
                       className="w-full pl-8 p-3 border border-slate-200 rounded-xl font-black text-xl text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none transition-all"
                       placeholder="0.00"
                       value={extraDeductions[selectedExtraDeductEmpId] || ''}
-                      onChange={(e) => {
-                         const val = Number(e.target.value);
+                      onValueChange={(v) => {
+                         const val = v === '' ? 0 : v;
                          setExtraDeductions(prev => ({...prev, [selectedExtraDeductEmpId]: val}));
                       }}
                     />
@@ -1983,16 +1984,16 @@ const PayrollProcessor: React.FC<{
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monto (Bs.)</label>
-                        <input type="number" className="w-full p-3 border rounded-xl font-bold text-lg" value={adelantoMonto} onChange={e => setAdelantoMonto(e.target.value)} autoFocus />
+                        <NumberInput decimals={2} className="w-full p-3 border rounded-xl font-bold text-lg" value={adelantoMonto === '' ? '' : Number(adelantoMonto)} onValueChange={v => setAdelantoMonto(v === '' ? '' : String(v))} autoFocus />
                     </div>
                     {adelantoTipo === 'prestamo_credito' && (
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cuota Quincenal (Bs.)</label>
-                        <input
-                          type="number"
+                        <NumberInput
+                          decimals={2}
                           className="w-full p-3 border rounded-xl font-bold text-lg"
-                          value={adelantoCuota}
-                          onChange={e => setAdelantoCuota(e.target.value)}
+                          value={adelantoCuota === '' ? '' : Number(adelantoCuota)}
+                          onValueChange={v => setAdelantoCuota(v === '' ? '' : String(v))}
                         />
                       </div>
                     )}
@@ -2558,12 +2559,11 @@ const PayrollProcessor: React.FC<{
                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total Bono Proyectado a Pagar (Sucursal)</div>
                  <div className="flex items-center gap-2 mt-2">
                    <span className="text-sm font-bold text-indigo-700">Bs.</span>
-                   <input
-                     type="number"
+                   <NumberInput
+                     decimals={2}
                      className="w-40 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
                      value={globalBonoBs}
-                     onChange={(e) => {
-                       const val = e.target.value === '' ? '' : Number(e.target.value);
+                     onValueChange={(val) => {
                        setGlobalBonoBs(val);
                        setGlobalBonoUsd(val === '' ? '' : val / tasa);
                        const valNum = Number(val) || 0;
@@ -2595,12 +2595,11 @@ const PayrollProcessor: React.FC<{
                  </div>
                  <div className="flex items-center gap-2 mt-2">
                    <span className="text-sm font-bold text-indigo-700 w-[18px] text-center">$</span>
-                   <input
-                     type="number"
+                   <NumberInput
+                     decimals={2}
                      className="w-40 p-2 border border-indigo-200 rounded-lg text-xl font-black text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                     value={globalBonoUsd === '' ? '' : Number(globalBonoUsd).toFixed(2)}
-                     onChange={(e) => {
-                       const val = e.target.value === '' ? '' : Number(e.target.value);
+                     value={globalBonoUsd}
+                     onValueChange={(val) => {
                        setGlobalBonoUsd(val);
                        const valBs = val === '' ? '' : val * tasa;
                        setGlobalBonoBs(valBs);
